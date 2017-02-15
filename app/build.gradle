@@ -1,0 +1,102 @@
+apply plugin: 'com.android.application'
+
+//noinspection GroovyMissingReturnStatement
+android {
+    compileSdkVersion 25
+    buildToolsVersion '25.0.2'
+
+    dataBinding {
+        enabled = true
+    }
+
+    //noinspection GroovyMissingReturnStatement
+    defaultConfig {
+        applicationId 'com.bioid.authenticator'
+        minSdkVersion 23
+        targetSdkVersion 25
+        versionCode commitCountOfCurrentBranch()
+        versionName nameOfLastTag()
+
+        vectorDrawables.useSupportLibrary = true
+
+        testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
+
+        // additional information about the build
+        buildConfigField 'String', 'COMMIT_SHA', "\"${commitSha()}\""
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    productFlavors {
+        bws {
+            applicationIdSuffix ".bws"  // making it possible to have both the connect and bws flavor installed in parallel
+
+            // adding BWS settings from local gradle.properties
+            buildConfigField 'String', 'BIOID_BWS_INSTANCE_NAME', BioIdBwsInstanceName
+            buildConfigField 'String', 'BIOID_APP_ID', BioIdAppId
+            buildConfigField 'String', 'BIOID_APP_SECRET', BioIdAppSecret
+            buildConfigField 'String', 'BIOID_BCID', BioIdBcid
+        }
+    }
+}
+
+dependencies {
+    compile 'com.android.support:support-annotations:25.1.1'
+    compile 'com.android.support:design:25.1.1'
+    compile 'com.android.support:support-v13:25.1.1'
+    compile 'com.android.support:appcompat-v7:25.1.1'
+    compile 'com.google.android.gms:play-services-vision:10.0.1'
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.hamcrest:hamcrest-library:1.3'
+    testCompile 'org.mockito:mockito-core:2.7.1'
+    testCompile 'org.robolectric:robolectric:3.2.2'
+    testCompile 'nl.jqno.equalsverifier:equalsverifier:2.2.1'
+}
+
+/**
+ * Does count the amount of commits on the current branch.
+ *
+ * This should be unique enough for the android version code.
+ * The only downside is that if hotfix releases on another branch are necessary the next release from master has to have more
+ * commits in total (which should be the case normally).
+ */
+static def commitCountOfCurrentBranch() {
+    return Integer.parseInt(['git', 'rev-list', '--count', 'HEAD'].execute().text.trim())
+}
+
+/**
+ * Returns the name of the last tag plus a "-dirty" suffix if any commits or working directory changes have been made.
+ */
+static def nameOfLastTag() {
+    def gitDescribe = ['git', 'describe', '--dirty', '--long'].execute().text.trim()  // e.g. "1.2.1-3-gb076164-dirty"
+
+    if (gitDescribe.isEmpty()) {
+        // no tagged revision in this repository
+        return 'dirty'
+    }
+
+    def split = gitDescribe.split('-')
+    def lastTag = split[0]
+    def commitCount = Integer.parseInt(split[1])
+    def dirtyFlagPresent = split.length == 4
+
+    if (commitCount > 0 || dirtyFlagPresent) {
+        return lastTag + '-dirty'
+    } else {
+        return lastTag
+    }
+}
+
+/**
+ * Returns the SHA-1 commit hash of the HEAD.
+ */
+static def commitSha() {
+    return ['git', 'rev-parse', '--short', 'HEAD'].execute().text.trim()
+}

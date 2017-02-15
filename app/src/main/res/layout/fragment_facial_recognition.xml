@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black">
+
+        <com.bioid.authenticator.base.camera.ProportionalTextureView
+            android:id="@+id/preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal|top"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <ProgressBar
+                android:id="@+id/loading_indicator"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:visibility="invisible"
+                tools:visibility="visible"/>
+
+            <TextView
+                android:id="@+id/unobtrusive_message"
+                style="@style/OverlayMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/view_margin_small"
+                android:visibility="invisible"
+                tools:text="Move your head slightly"
+                tools:visibility="visible"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/fullscreen_message"
+            style="@style/OverlayMessage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:visibility="invisible"
+            tools:text="Verifying …"
+            tools:visibility="visible"/>
+
+    </FrameLayout>
+
+</layout>

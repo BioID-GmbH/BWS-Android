@@ -1,0 +1,41 @@
+<resources>
+    <string name="nav_verification">Verify</string>
+    <string name="nav_enrollment">Enroll face</string>
+
+    <string name="dialog_button_continue">Continue</string>
+    <string name="dialog_title_missing_permission">Permission Required</string>
+    <string name="dialog_message_missing_camera_permission">For facial recognition access to the camera needs to be granted.</string>
+    <string name="dialog_title_no_connection">No Connection</string>
+    <string name="dialog_message_no_connection">The app could not connect to the server.</string>
+    <string name="dialog_title_wrong_credentials">Wrong Credentials</string>
+    <string name="dialog_message_wrong_credentials">The provided credentials are invalid.</string>
+    <string name="dialog_title_server_error">Server Error</string>
+    <string name="dialog_message_server_error">The server is temporarily unavailable. Please try again later.</string>
+
+    <string name="facial_recognition_move_any">Move your head slightly</string>
+    <string name="facial_recognition_move_up">Move your head up</string>
+    <string name="facial_recognition_move_down">Move your head down</string>
+    <string name="facial_recognition_move_left">Move your head left</string>
+    <string name="facial_recognition_move_right">Move your head right</string>
+    <string name="facial_recognition_init">Initializing…</string>
+    <string name="facial_recognition_find_face">Trying to detect face…</string>
+    <string name="facial_recognition_uploading">Uploading…</string>
+    <string name="facial_recognition_warning_motion_detection">No motion detected</string>
+    <string name="facial_recognition_warning_live_detection">Failed Liveness Detection</string>
+    <string name="facial_recognition_warning_no_face_found">No face found</string>
+    <string name="facial_recognition_warning_multiple_faces_found">Multiple faces found</string>
+
+    <string name="verification_waiting">Verifying …</string>
+    <string name="verification_success">Successful Verification</string>
+    <string name="verification_error_title">Failed Verification</string>
+    <string name="verification_error_message_no_enrollment">You have to complete the enrollment process first.</string>
+    <string name="verification_warning_not_recognized">Failed Verification</string>
+    <string name="verification_warning_challenge_response">Challenge not completed</string>
+
+    <string name="enrollment_waiting">Training…</string>
+    <string name="enrollment_success">Successful Enrollment</string>
+    <string name="enrollment_process_explanation_title">Easy as a selfie</string>
+    <string name="enrollment_process_explanation_message">Enrollment is how BioID learns to recognize you. Four sets of pictures will be taken. Hold device at eye level and follow instructions.</string>
+    <string name="enrollment_process_turn90degrees_title">Please turn</string>
+    <string name="enrollment_process_turn90degrees_message">Turn yourself 90 degrees to your right to achieve different lighting conditions.</string>
+</resources>

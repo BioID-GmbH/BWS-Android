@@ -1,0 +1,13 @@
+<resources>
+
+    <!-- creating space between views -->
+    <dimen name="view_margin_small">8dp</dimen>
+    <dimen name="view_margin_large">50dp</dimen>
+
+    <!-- button -->
+    <dimen name="button_horizontal_padding">16dp</dimen>
+
+    <!-- overlay -->
+    <dimen name="overlay_message_padding">10dp</dimen>
+
+</resources>

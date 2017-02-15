@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- BioID colors -->
+    <color name="bioid_mariner_blue">#3D649F</color>
+    <color name="bioid_aluminum_grey">#979899</color>
+    <color name="bioid_lima_green">#72C02C</color>
+
+    <!-- material color branding -->
+    <color name="colorPrimary">@color/bioid_mariner_blue</color>
+    <color name="colorPrimaryDark">#244B86</color>  <!-- 10% darker -->
+    <color name="colorAccent">@color/bioid_lima_green</color>
+    <color name="colorPrimaryInverse">@android:color/white</color>
+
+    <!-- button -->
+    <color name="colorButton">@color/colorPrimary</color>
+    <color name="colorButtonPressed">@color/colorPrimaryDark</color>
+    <color name="colorButtonFocused">@color/colorPrimaryDark</color>
+    <color name="colorButtonDisabled">@color/bioid_aluminum_grey</color>
+
+    <!-- overlay -->
+    <color name="colorTransparentDialogBackground">#DD000000</color>
+    <color name="colorTransparentDialogText">@android:color/white</color>
+    <color name="colorTransparentDialogButton">@color/colorAccent</color>
+
+    <color name="colorOverlayMessageBackground">@color/colorTransparentDialogBackground</color>
+    <color name="colorOverlayMessageText">@color/colorTransparentDialogText</color>
+
+</resources>

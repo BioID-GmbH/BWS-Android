@@ -1,0 +1,44 @@
+<resources>
+
+    <!-- Themes -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="TransparentDialogTheme" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:colorBackground">@color/colorTransparentDialogBackground</item>
+        <item name="android:textColorPrimary">@color/colorTransparentDialogText</item>
+        <item name="colorAccent">@color/colorTransparentDialogButton</item>
+    </style>
+
+    <!-- Toolbar -->
+    <style name="Toolbar">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">?attr/actionBarSize</item>
+        <item name="android:background">@color/colorPrimary</item>
+        <item name="android:theme">@style/ThemeOverlay.AppCompat.Dark.ActionBar</item>  <!-- uses white text -->
+    </style>
+
+    <!-- Styles -->
+    <style name="Button" parent="Base.Widget.AppCompat.Button">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">@dimen/button_horizontal_padding</item>
+        <item name="android:paddingEnd">@dimen/button_horizontal_padding</item>
+        <item name="android:background">@drawable/button_background</item>
+        <item name="android:textColor">@color/colorPrimaryInverse</item>
+    </style>
+
+    <style name="OverlayMessage" parent="TextAppearance.AppCompat.Large">
+        <item name="android:padding">@dimen/overlay_message_padding</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:textColor">@color/colorOverlayMessageText</item>
+        <item name="android:background">@color/colorOverlayMessageBackground</item>
+    </style>
+
+</resources>
