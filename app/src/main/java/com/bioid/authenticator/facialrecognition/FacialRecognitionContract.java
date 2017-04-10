@@ -3,7 +3,7 @@ package com.bioid.authenticator.facialrecognition;
 import android.support.annotation.NonNull;
 
 import com.bioid.authenticator.base.annotations.Rotation;
-import com.bioid.authenticator.base.image.Yuv420Image;
+import com.bioid.authenticator.base.image.IntensityPlane;
 import com.bioid.authenticator.base.mvp.LifecycleAware;
 import com.bioid.authenticator.base.network.bioid.webservice.MovementDirection;
 
@@ -39,6 +39,21 @@ public interface FacialRecognitionContract {
          * Prompt the user to turn himself 90 degrees to the right.
          */
         void promptToTurn90Degrees();
+
+        /**
+         * Show a movement indicator to instruct the user to look in a certain direction.
+         */
+        void showMovementIndicator(@NonNull MovementDirection direction);
+
+        /**
+         * Show a movement indicator looking straight ahead.
+         */
+        void resetMovementIndicator();
+
+        /**
+         * Hide the movement indicator.
+         */
+        void hideMovementIndicator();
 
         /**
          * Show a info message instructing the user to look in a certain direction.
@@ -111,6 +126,11 @@ public interface FacialRecognitionContract {
         void showMultipleFacesFoundWarning();
 
         /**
+         * Show a warning messages indication that no samples have been provided.
+         */
+        void showNoSamplesWarning();
+
+        /**
          * Hides all info, warning or success messages.
          */
         void hideMessages();
@@ -139,6 +159,12 @@ public interface FacialRecognitionContract {
          * The activity result will express that the operation has not succeeded.
          */
         void showNoEnrollmentErrorAndNavigateBack();
+
+        /**
+         * Show a error message indicating that the device is not registered anymore and navigate back to the previous activity.
+         * The activity result will express that the operation has not succeeded.
+         */
+        void showDeviceNotRegisteredErrorAndNavigateBack();
 
         /**
          * Show a error message indicating that the provided credentials are invalid and navigate back to the previous activity.
@@ -198,9 +224,10 @@ public interface FacialRecognitionContract {
         /**
          * Callback which is called if an image was captured.
          *
-         * @param img         image within the YUV_420_888 format
+         * @param img         Y-Plane of a YUV_420_888 image
          * @param imgRotation the rotation of the image
          */
-        void onImageCaptured(@NonNull Yuv420Image img, @Rotation int imgRotation);
+        void onImageCaptured(@NonNull IntensityPlane img, @Rotation int imgRotation);
+
     }
 }

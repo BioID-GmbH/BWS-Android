@@ -2,7 +2,6 @@ package com.bioid.authenticator.base.network.bioid.webservice.token;
 
 import android.content.Context;
 import android.os.Parcel;
-import android.renderscript.RenderScript;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 
@@ -37,8 +36,7 @@ public class BwsTokenProvider implements VerificationTokenProvider, EnrollmentTo
 
     @VisibleForTesting
     BioIdWebserviceClientExtended createBwsClient(@NonNull Context ctx) {
-        RenderScript rs = RenderScript.create(ctx);
-        return new BioIdWebserviceClientExtended(rs);
+        return new BioIdWebserviceClientExtended();
     }
 
     //region Parcelable implementation

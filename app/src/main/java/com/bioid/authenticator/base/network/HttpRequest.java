@@ -1,4 +1,4 @@
-/**
+/*
  * Class copied from "https://github.com/kevinsawicki/http-request" to avoid having any non Android dependencies in the project.
  * Revision: 954c506  Jan 21, 2015
  * All warnings are suppressed for this third party code.

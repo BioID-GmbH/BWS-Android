@@ -1,164 +1,198 @@
 package com.bioid.authenticator.facialrecognition;
 
+import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 
 import com.bioid.authenticator.base.image.GrayscaleImage;
+import com.bioid.authenticator.base.image.ImageFormatConverter;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 
+
 /**
- * Contains simple algorithm for motion detection.
+ * Contains stateful algorithm for motion detection.
  * <p/>
  * Because this algorithm is shared across multiple platforms it should not be modified!
  * Therefore all inspections are disabled and no tests do exist.
  */
 @SuppressWarnings("ConstantConditions")
-class MotionDetection {
+public class MotionDetection {
 
-    private static final String STOPWATCH_SESSION_ID = "motion detection algorithm";
-    private static final int THRESHOLD = 18;
-    private static final int NOISE_INTENSITY_LEVEL = 36;
+    private static final int MIN_MOVEMENT_PERCENTAGE = 15;
 
     private final LoggingHelper log = LoggingHelperFactory.create(MotionDetection.class);
 
+    private final ImageFormatConverter imageFormatConverter;
+
+    // Template for motion detection
+    private int templateWidth;
+    private int templateHeight;
+    private int templateXpos;
+    private int templateYpos;
+    private int resizeCenterX;
+    private int resizeCenterY;
+    private int[] templateBuffer;
+
+    MotionDetection() {
+        this.imageFormatConverter = new ImageFormatConverter();
+    }
+
     /**
-     * Can detect if a change in position did happen.
+     * Cut out the template that is used by the motion detection.
      *
-     * @param first   the first image of a series which is used as a baseline
-     * @param current the image which might contain a change in position as compared with the first image
-     * @return true if motion was detected
+     * @param first the image which is used for the template matching.
      */
-    boolean detect(@NonNull GrayscaleImage first, @NonNull GrayscaleImage current) {
-        log.startStopwatch(STOPWATCH_SESSION_ID);
+    void createTemplate(@NonNull Bitmap first) {
 
-        boolean trigger = false;
+        String stopwatchSessionId = log.startStopwatch("creating template for motion detection");
 
-        int difference;
-        int width = first.width;
-        int height = first.height;
-        int width2 = current.width;
-        int height2 = current.height;
+        GrayscaleImage resizedGrayImage = resizeImageForMotionDetection(first);
 
-        if (width != width2 || height != height2) {
-            return trigger;
+        resizeCenterX = resizedGrayImage.width / 2;
+        resizeCenterY = resizedGrayImage.height / 2;
+
+        if (resizedGrayImage.width > resizedGrayImage.height) {
+            // Landscape mode
+            templateWidth = resizedGrayImage.width / 10;
+            templateHeight = resizedGrayImage.height / 3;
+        } else {
+            // Portrait mode
+            templateWidth = resizedGrayImage.width / 10 * 4 / 3;
+            templateHeight = resizedGrayImage.height / 4;
         }
 
-        // Calculate simple difference of the two images - concentrating on the centre
-        int differenceSum = 0;
+        templateXpos = resizeCenterX - templateWidth / 2;
+        templateYpos = resizeCenterY - templateHeight / 2;
 
-        // Moving objects in the background often disturb automatic motion detection, so we will concentrate on the middle of the images
-        // We will cut out the inner half difference image, i.e. we want to get rid of 1/4th margin on all sides
-        int differenceImageWidth = width / 2;
-        int differenceImageHeight = height / 2;
+        templateBuffer = new int[templateWidth * templateHeight];
 
-        int[] differenceImage = new int[differenceImageWidth * differenceImageHeight];
-
-        int numberOfPixels = 0;
-
-        // We leave 1/4 margin to top and bottom
-        int verticalStart = first.height / 4;
-        int verticalEnd = 3 * first.height / 4;
-        // And 1/4 margin to left and right
-        int horizontalStart = first.width / 4;
-        int horizontalEnd = 3 * first.width / 4;
-
-        for (int y = verticalStart; y < verticalEnd; y++) {
-            int positionCounter = (y * width) + horizontalStart;
-            for (int x = horizontalStart; x < horizontalEnd; x++) {
-                // Use the absolute difference of source and target pixel intensity as a motion measurement
-                difference = Math.abs((first.data[positionCounter] & 0xff) - (current.data[positionCounter] & 0xff));
-                differenceSum += difference;
-                differenceImage[numberOfPixels++] = difference;
-                positionCounter++;
+        int counter = 0;
+        for (int y = templateYpos; y < templateYpos + templateHeight; y++) {
+            int offset = y * resizedGrayImage.width;
+            for (int x = templateXpos; x < templateXpos + templateWidth; x++) {
+                int templatePixel = resizedGrayImage.data[x + offset] & 0xff;
+                templateBuffer[counter++] = templatePixel;
             }
         }
 
-        // Mean difference: Divide by ROI
-        int meanDiff = (int) (((double) differenceSum / (double) numberOfPixels) + 0.5);
-        // Mean Difference: Never lower than noise level
-        meanDiff = (meanDiff < NOISE_INTENSITY_LEVEL) ? NOISE_INTENSITY_LEVEL : meanDiff;
+        log.stopStopwatch(stopwatchSessionId);
+    }
 
-        // We want to roughly calculate the bounding moving box
-        int movingAreaX1 = 0;
-        int movingAreaX2 = 0;
-        int movingAreaY1 = 0;
-        int movingAreaY2 = 0;
+    /**
+     * Does remove the currently stored template.
+     */
+    void resetTemplate() {
+        templateWidth = 0;
+        templateHeight = 0;
+        templateXpos = 0;
+        templateYpos = 0;
+        resizeCenterX = 0;
+        resizeCenterY = 0;
+        templateBuffer = null;
+    }
 
-        // This will count all pixels that changed within the moving area
-        int changedPixels = 0;
+    /**
+     * Can detect if a change in position did happen.
+     * This algorithm is basically called: "Template Matching" - we use the normalized cross correlation to be independent of lighting images.
+     * We calculate the correlation of template and image over whole image area.
+     *
+     * @param current the image which might contain a change in position as compared with the first image
+     * @return true if motion was detected
+     * @throws IllegalStateException if {@link #createTemplate(Bitmap)} was not called
+     */
+    boolean detect(@NonNull Bitmap current) {
+        if (templateBuffer == null) {
+            throw new IllegalStateException("missing template");
+        }
 
-        // This is the main loop to determine a human's head bounding box
-        // Basically, we start from top to bottom,
-        // then try to find the horizontal coordinates of the head width,
-        // and stop before the shoulder area would enlarge that box again
-        int posCount = 0;
-        for (int y = 1; y < differenceImageHeight; y++) {
-            for (int x = 0; x < differenceImageWidth; x++) {
-                difference = differenceImage[posCount++];
+        String stopwatchSessionId = log.startStopwatch("motion detection algorithm");
 
-                // For moving area detection, we only count differences higher than normal noise
-                if (difference > meanDiff) {
-                    // The first movement pixel will determine the starting coordinates
-                    if (movingAreaY1 == 0) {
-                        // This is typically the top head position
-                        movingAreaX1 = x;
-                        movingAreaY1 = y;
-                        movingAreaX2 = x;
-                        movingAreaY2 = y;
+        GrayscaleImage resizedGrayImage = resizeImageForMotionDetection(current);
+
+        int bestHitX = 0;
+        int bestHitY = 0;
+        double maxCorr = 0.0;
+        boolean triggered = false;
+
+        int searchWidth = resizedGrayImage.width / 4;
+        int searchHeight = resizedGrayImage.height / 4;
+
+        for (int y = resizeCenterY - searchHeight; y <= resizeCenterY + searchHeight - templateHeight; y++) {
+            for (int x = resizeCenterX - searchWidth; x <= resizeCenterX + searchWidth - templateWidth; x++) {
+                int nominator = 0;
+                int denominator = 0;
+                int templateIndex = 0;
+
+                // Calculate the normalized cross-correlation coefficient for this position
+                for (int ty = 0; ty < templateHeight; ty++) {
+                    int bufferIndex = x + (y + ty) * resizedGrayImage.width;
+                    for (int tx = 0; tx < templateWidth; tx++) {
+                        int imagePixel = resizedGrayImage.data[bufferIndex++] & 0xff;
+                        nominator += templateBuffer[templateIndex++] * imagePixel;
+                        denominator += imagePixel * imagePixel;
                     }
+                }
 
-                    // We do not want to get into the shoulder area
-                    if (y < 3 * differenceImageHeight / 5) {
-                        if (x < movingAreaX1) {
-                            // New left coordinate of bounding box
-                            movingAreaX1 = x;
-                        } else if (x > movingAreaX2) {
-                            // New right coordinate of bounding box
-                            movingAreaX2 = x;
-                        }
-                    }
-
-                    // We assume here that the vertical height of a human head is not exceeding 1.33 times the head width
-                    if ((y >= movingAreaY2) && (y - movingAreaY1 < 4 * (movingAreaX2 - movingAreaX1) / 3)) {
-                        // Only if the condition above is true we will use this lower vertical coordinate
-                        // This avoids expanding the bounding box to the bottom of the screen
-                        movingAreaY2 = y;
-
-                        // If the current location is within this calculated area, then we have a new movement within the head area
-                        if ((x >= movingAreaX1) && (x <= movingAreaX2)) {
-                            changedPixels++;
-                        }
-                    }
+                // The NCC coefficient is then (watch out for division-by-zero errors for pure black images)
+                double ncc = 0.0;
+                if (denominator > 0) {
+                    ncc = (double) nominator * (double) nominator / (double) denominator;
+                }
+                // Is it higher that what we had before?
+                if (ncc > maxCorr) {
+                    maxCorr = ncc;
+                    bestHitX = x;
+                    bestHitY = y;
                 }
             }
         }
 
-        // Calculate area of moving object
-        int movingAreaWidth = movingAreaX2 - movingAreaX1 + 1;
-        int movingAreaHeight = movingAreaY2 - movingAreaY1 + 1;
+        // Now the most similar position of the template is (bestHitX, bestHitY). Calculate the difference from the origin
+        int distX = bestHitX - templateXpos;
+        int distY = bestHitY - templateYpos;
+        double movementDiff = Math.sqrt(distX * distX + distY * distY);
 
-        // Was there any suitable movement at all?
-        if ((movingAreaWidth <= 0) || (movingAreaHeight <= 0)) {
-            movingAreaWidth = 1;
-            movingAreaHeight = 1;
-            changedPixels = 0;
+        // The maximum movement possible is a complete shift into one of the corners, i.e.
+        int maxDistX = searchWidth - templateWidth / 2;
+        int maxDistY = searchHeight - templateHeight / 2;
+        double maximumMovement = Math.sqrt((double) maxDistX * maxDistX + (double) maxDistY * maxDistY);
+
+        // The percentage of the detected movement is therefore
+        double movementPercentage = movementDiff / maximumMovement * 100.0;
+
+        if (movementPercentage > 100.0) {
+            movementPercentage = 100.0;
         }
 
-        // Moving area difference: Calculate changes according to size
-        double movementDiff = (double) changedPixels / (double) (movingAreaWidth * movingAreaHeight);
+        log.d("detected motion of %.2f%%", movementPercentage);
 
-        // movementDiff now holds the percentage of moving pixels within the moving area. Let's bring that to [0.0; 100.0]
-        movementDiff *= 100.0;
-        log.d("moving pixels within moving area: %.2f%%", movementDiff);
-
-        // If moving area is big enough to be a human face, then let's trigger
-        // We accept only faces that are at least 1/20th of the image dimensions
-        if ((movingAreaWidth > first.width / 20) && (movingAreaHeight > first.height / 20)) {
-            // Trigger if movementDiff is above threshold (default: when 10% of face bounding box pixels changed)
-            trigger = movementDiff > THRESHOLD;
+        // Trigger if movementPercentage is above threshold (default: when 15% of the maximum movement is exceeded)
+        if (movementPercentage > MIN_MOVEMENT_PERCENTAGE) {
+            triggered = true;
         }
 
-        log.stopStopwatch(STOPWATCH_SESSION_ID);
-        return trigger;
+        log.stopStopwatch(stopwatchSessionId);
+        return triggered;
+    }
+
+    private GrayscaleImage resizeImageForMotionDetection(@NonNull Bitmap bitmap) {
+
+        int resizeWidth;
+        int resizeHeight;
+
+        if (bitmap.getWidth() > bitmap.getHeight()) {
+            // Landscape mode
+            resizeHeight = 96;
+            // Calculate new width according to aspect ratio of original image
+            resizeWidth = bitmap.getWidth() * resizeHeight / bitmap.getHeight();
+        } else {
+            // Portrait mode
+            resizeWidth = 96;
+            // Calculate new height according to aspect ratio of original image
+            resizeHeight = bitmap.getHeight() * resizeWidth / bitmap.getWidth();
+        }
+
+        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, resizeWidth, resizeHeight, true);
+        return imageFormatConverter.bitmapToGrayscaleImage(resizedBitmap);
     }
 }

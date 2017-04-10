@@ -82,6 +82,7 @@ public class ImageTransformer {
         return rotate180Degrees(rotate90Degrees(img));
     }
 
+    @SuppressWarnings("SameParameterValue")
     private String getStopwatchSessionId(@NonNull String methodName) {
         return methodName + " (" + SystemClock.elapsedRealtimeNanos() + ")";
     }

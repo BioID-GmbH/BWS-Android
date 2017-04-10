@@ -8,8 +8,10 @@ import com.bioid.authenticator.base.network.HttpRequestHelper.Non200StatusExcept
 import com.bioid.authenticator.base.network.NoConnectionException;
 import com.bioid.authenticator.base.network.ServerErrorException;
 import com.bioid.authenticator.base.network.TechnicalException;
+import com.bioid.authenticator.base.network.bioid.webservice.token.BwsTokenFactory;
 import com.bioid.authenticator.base.network.bioid.webservice.token.EnrollmentToken;
 import com.bioid.authenticator.base.network.bioid.webservice.token.VerificationToken;
+import com.bioid.authenticator.testutil.Mocks;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -26,8 +28,8 @@ public class BioIdWebserviceClientExtendedTest {
 
     private static final String VERIFICATION_TOKEN_CONTENT = "verify token";
     private static final String ENROLLMENT_TOKEN_CONTENT = "enroll token";
-    private static final VerificationToken VERIFICATION_TOKEN = new VerificationToken(VERIFICATION_TOKEN_CONTENT);
-    private static final EnrollmentToken ENROLLMENT_TOKEN = new EnrollmentToken(ENROLLMENT_TOKEN_CONTENT);
+    private static final VerificationToken VERIFICATION_TOKEN = Mocks.verificationToken();
+    private static final EnrollmentToken ENROLLMENT_TOKEN = Mocks.enrollmentToken();
     private static final String BCID = "bcid";
 
     // override request creation because HttpRequest creation causes DNS lookup (actually done by URL constructor)
@@ -37,9 +39,9 @@ public class BioIdWebserviceClientExtendedTest {
         private String calledWithBcid;
         private String calledWithTask;
 
-        BioIdWebserviceClientExtendedForTest(HttpRequestHelper httpRequestHelper) {
+        BioIdWebserviceClientExtendedForTest(HttpRequestHelper httpRequestHelper, BwsTokenFactory tokenFactory) {
             // using null dependencies makes sure the base class functionality won't be tested
-            super(httpRequestHelper, null, null);
+            super(httpRequestHelper, null, null, tokenFactory);
         }
 
         @Override
@@ -53,18 +55,21 @@ public class BioIdWebserviceClientExtendedTest {
     @Mock
     private HttpRequestHelper httpRequestHelper;
     @Mock
+    private BwsTokenFactory tokenFactory;
+    @Mock
     private HttpRequest tokenRequest;
 
     private BioIdWebserviceClientExtendedForTest bioIdWebserviceClient;
 
     @Before
     public void setUp() throws Exception {
-        bioIdWebserviceClient = new BioIdWebserviceClientExtendedForTest(httpRequestHelper);
+        bioIdWebserviceClient = new BioIdWebserviceClientExtendedForTest(httpRequestHelper, tokenFactory);
     }
 
     @Test
     public void requestVerificationToken_tokenWillBeReturned() throws Exception {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenReturn(VERIFICATION_TOKEN_CONTENT);
+        when(tokenFactory.newVerificationToken(VERIFICATION_TOKEN_CONTENT)).thenReturn(VERIFICATION_TOKEN);
 
         VerificationToken result = bioIdWebserviceClient.requestVerificationToken(BCID);
 
@@ -100,6 +105,7 @@ public class BioIdWebserviceClientExtendedTest {
     @Test
     public void requestEnrollmentToken_tokenWillBeReturned() throws Exception {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenReturn(ENROLLMENT_TOKEN_CONTENT);
+        when(tokenFactory.newEnrollmentToken(ENROLLMENT_TOKEN_CONTENT)).thenReturn(ENROLLMENT_TOKEN);
 
         EnrollmentToken result = bioIdWebserviceClient.requestEnrollmentToken(BCID);
 

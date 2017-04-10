@@ -5,8 +5,6 @@ import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 import android.util.SparseArray;
 
-import com.bioid.authenticator.base.annotations.FrameRotation;
-import com.bioid.authenticator.base.annotations.Rotation;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.google.android.gms.vision.Frame;
@@ -44,39 +42,31 @@ class FaceDetection {
     /**
      * Can detect if the image contains a human face.
      *
-     * @param img      image which might contain a human face
-     * @param rotation rotation of the image
+     * @param bitmap image which might contain a human face
      * @return true if the image contains at least one prominent face
      * @throws NotOperationalException if the binaries needed for Google Mobile Vision API are not downloaded yet
      */
-    boolean containsFace(@NonNull Bitmap img, @Rotation int rotation) {
+    boolean containsFace(@NonNull Bitmap bitmap) {
         if (!detector.isOperational()) {
             throw new NotOperationalException();
         }
 
         log.startStopwatch(STOPWATCH_SESSION_ID);
-        int faceCount = getFaceCount(img, rotation);
+        int faceCount = getFaceCount(bitmap);
         log.stopStopwatch(STOPWATCH_SESSION_ID);
 
         return faceCount > 0;
     }
 
-    private int getFaceCount(@NonNull Bitmap img, @Rotation int rotation) {
+    private int getFaceCount(@NonNull Bitmap img) {
         Frame frame = new Frame.Builder()
                 .setBitmap(img)
-                .setRotation(toFrameRotation(rotation))
                 .build();
 
         SparseArray<Face> faces = detector.detect(frame);
         log.d("%d faces detected within image %s", faces.size(), img);
 
         return faces.size();
-    }
-
-    @FrameRotation
-    private int toFrameRotation(@Rotation int rotation) {
-        //noinspection WrongConstant
-        return rotation / 90;
     }
 
     /**

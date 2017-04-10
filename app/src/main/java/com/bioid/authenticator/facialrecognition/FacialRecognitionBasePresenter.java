@@ -2,8 +2,8 @@ package com.bioid.authenticator.facialrecognition;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.renderscript.RenderScript;
 import android.support.annotation.CallSuper;
+import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 
@@ -13,17 +13,19 @@ import com.bioid.authenticator.base.functional.Supplier;
 import com.bioid.authenticator.base.image.GrayscaleImage;
 import com.bioid.authenticator.base.image.ImageFormatConverter;
 import com.bioid.authenticator.base.image.ImageTransformer;
-import com.bioid.authenticator.base.image.Yuv420Image;
+import com.bioid.authenticator.base.image.IntensityPlane;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.network.NoConnectionException;
 import com.bioid.authenticator.base.network.ServerErrorException;
 import com.bioid.authenticator.base.network.bioid.webservice.BioIdWebserviceClient;
 import com.bioid.authenticator.base.network.bioid.webservice.ChallengeResponseException;
+import com.bioid.authenticator.base.network.bioid.webservice.DeviceNotRegisteredException;
 import com.bioid.authenticator.base.network.bioid.webservice.LiveDetectionException;
 import com.bioid.authenticator.base.network.bioid.webservice.MovementDirection;
 import com.bioid.authenticator.base.network.bioid.webservice.MultipleFacesFoundException;
 import com.bioid.authenticator.base.network.bioid.webservice.NoEnrollmentException;
 import com.bioid.authenticator.base.network.bioid.webservice.NoFaceFoundException;
+import com.bioid.authenticator.base.network.bioid.webservice.NoSamplesException;
 import com.bioid.authenticator.base.network.bioid.webservice.NotRecognizedException;
 import com.bioid.authenticator.base.network.bioid.webservice.WrongCredentialsException;
 import com.bioid.authenticator.base.network.bioid.webservice.token.BwsToken;
@@ -37,13 +39,13 @@ import com.bioid.authenticator.base.threading.BackgroundHandler;
  */
 public abstract class FacialRecognitionBasePresenter<T extends BwsToken> implements FacialRecognitionContract.Presenter {
 
-    protected static final int MAX_FAILED_OPERATIONS = 3;
     protected static final int DELAY_TO_RETRY_IN_MILLIS = 3_000;
 
     private static final int MAX_FAILED_UPLOADS = 3;
     private static final int MOTION_TIMEOUT_IN_MILLIS = 12_000;
     private static final int FACE_TIMEOUT_IN_MILLIS = 4_000;
     private static final int DELAY_TO_NAVIGATE_BACK_IN_MILLIS = 3_000;
+    private static final int DELAY_TO_CHECK_FOR_MOTION_IN_MILLIS = 1_000;
 
     protected final Context ctx;
     protected final LoggingHelper log;
@@ -62,28 +64,28 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
     protected int failedUploads;
 
     @VisibleForTesting
+    int index;
+    @VisibleForTesting
     PermissionState permissionState = PermissionState.UNKNOWN;
     @VisibleForTesting
     ImageDetectionState imageDetectionState = ImageDetectionState.OTHER;
     @VisibleForTesting
     MovementDirection currentDirection, destinationDirection;
     @VisibleForTesting
-    GrayscaleImage referenceImage;
-    @VisibleForTesting
     Integer taskIdMotionTimeout;
     @VisibleForTesting
     Integer taskIdFaceTimeout;
 
-    protected FacialRecognitionBasePresenter(Context ctx, LoggingHelper log, FacialRecognitionContract.View view, RenderScript rs) {
+    protected FacialRecognitionBasePresenter(Context ctx, LoggingHelper log, FacialRecognitionContract.View view) {
         this.ctx = ctx;
         this.log = log;
         this.view = view;
         this.backgroundHandler = new AsynchronousBackgroundHandler();
-        this.imageFormatConverter = new ImageFormatConverter(rs);
+        this.imageFormatConverter = new ImageFormatConverter();
         this.imageTransformer = new ImageTransformer();
         this.faceDetection = new FaceDetection(ctx);
         this.motionDetection = new MotionDetection();
-        this.bioIdWebserviceClient = new BioIdWebserviceClient(rs);
+        this.bioIdWebserviceClient = new BioIdWebserviceClient();
     }
 
     @VisibleForTesting
@@ -196,39 +198,50 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
      * The user will be prompted to follow the movement direction instructions.
      * A motion detection algorithm will be used to check for the live detection requirements.
      *
+     * @param index                the index to use for image uploads
+     *                             index will be used for the reference image and index+1 for the image with motion
      * @param currentDirection     movement direction of the first image
      * @param destinationDirection movement direction of the second image
      */
     @CallSuper
     @SuppressWarnings("SameParameterValue")
-    protected void captureImagePair(MovementDirection currentDirection, MovementDirection destinationDirection) {
-        log.d("captureImagePair(currentDirection=%s, destinationDirection=%s)", currentDirection, destinationDirection);
+    protected void captureImagePair(@IntRange(from = 0) int index,
+                                    @NonNull MovementDirection currentDirection, @NonNull MovementDirection destinationDirection) {
+        log.d("captureImagePair(index=%d, currentDirection=%s, destinationDirection=%s)",
+                index, currentDirection, destinationDirection);
 
+        this.index = index;
         this.currentDirection = currentDirection;
         this.destinationDirection = destinationDirection;
 
         view.showMovementInfo(destinationDirection);
+        view.showMovementIndicator(destinationDirection);
 
         imageDetectionState = ImageDetectionState.WAITING_FOR_REFERENCE_IMAGE;
     }
 
     @CallSuper
     @Override
-    public void onImageCaptured(@NonNull Yuv420Image img, @Rotation int imgRotation) {
+    public void onImageCaptured(@NonNull IntensityPlane plane, @Rotation int imgRotation) {
         switch (imageDetectionState) {
             case WAITING_FOR_IMAGE_WITH_FACE:
                 // do not process any new images while background operations are still running
                 imageDetectionState = ImageDetectionState.OTHER;
-                onPotentialImageWithFaceCaptured(img, imgRotation);
+                createRotatedBitmap(plane, imgRotation, new Consumer<Bitmap>() {
+                    @Override
+                    public void accept(Bitmap bitmap) {
+                        onPotentialImageWithFaceCaptured(bitmap);
+                    }
+                });
                 break;
 
             case WAITING_FOR_REFERENCE_IMAGE:
-                // process new images to find image with motion while uploading reference image
-                imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION;
-                createRotatedGrayscaleImage(img, imgRotation, new Consumer<GrayscaleImage>() {
+                // do not process any new images while movement instructions are shown (challenge-response only)
+                imageDetectionState = ImageDetectionState.OTHER;
+                createRotatedBitmap(plane, imgRotation, new Consumer<Bitmap>() {
                     @Override
-                    public void accept(GrayscaleImage rotatedImage) {
-                        onReferenceImageCaptured(rotatedImage);
+                    public void accept(Bitmap bitmap) {
+                        onReferenceImageCaptured(bitmap);
                     }
                 });
                 break;
@@ -236,10 +249,10 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
             case WAITING_FOR_IMAGE_WITH_MOTION:
                 // do not process any new images while background operations are still running
                 imageDetectionState = ImageDetectionState.OTHER;
-                createRotatedGrayscaleImage(img, imgRotation, new Consumer<GrayscaleImage>() {
+                createRotatedBitmap(plane, imgRotation, new Consumer<Bitmap>() {
                     @Override
-                    public void accept(GrayscaleImage rotatedImage) {
-                        onPotentialImageWithMotionCaptured(rotatedImage);
+                    public void accept(Bitmap bitmap) {
+                        onPotentialImageWithMotionCaptured(bitmap);
                     }
                 });
                 break;
@@ -249,14 +262,15 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
         }
     }
 
-    private void createRotatedGrayscaleImage(@NonNull final Yuv420Image img, @Rotation final int imgRotation,
-                                             @NonNull Consumer<GrayscaleImage> onSuccess) {
+    private void createRotatedBitmap(@NonNull final IntensityPlane img, @Rotation final int imgRotation,
+                                     @NonNull Consumer<Bitmap> onSuccess) {
         // perform image processing in the background to keep the UI responsive
-        backgroundHandler.runOnBackgroundThread(new Supplier<GrayscaleImage>() {
+        backgroundHandler.runOnBackgroundThread(new Supplier<Bitmap>() {
             @Override
-            public GrayscaleImage get() {
-                GrayscaleImage grayscaleImg = imageFormatConverter.yuv420ToGrayscaleImage(img);
-                return imageTransformer.rotate(grayscaleImg, imgRotation);
+            public Bitmap get() {
+                GrayscaleImage grayscaleImage = imageFormatConverter.intensityPlaneToGrayscaleImage(img);
+                GrayscaleImage rotatedGrayscaleImage = imageTransformer.rotate(grayscaleImage, imgRotation);
+                return imageFormatConverter.grayscaleImageToBitmap(rotatedGrayscaleImage);
             }
         }, onSuccess, new Consumer<RuntimeException>() {
             @Override
@@ -266,13 +280,12 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
         }, null);
     }
 
-    private void onPotentialImageWithFaceCaptured(@NonNull final Yuv420Image img, @Rotation final int rotation) {
+    private void onPotentialImageWithFaceCaptured(@NonNull final Bitmap img) {
         // check for potential face in the image within the background to keep the UI responsive
         backgroundHandler.runOnBackgroundThread(new Supplier<Boolean>() {
             @Override
             public Boolean get() {
-                Bitmap imageAsRgb = imageFormatConverter.yuv420ToRgb(img);
-                return faceDetection.containsFace(imageAsRgb, rotation);
+                return faceDetection.containsFace(img);
             }
         }, new Consumer<Boolean>() {
             @Override
@@ -287,11 +300,7 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
         }, new Consumer<RuntimeException>() {
             @Override
             public void accept(RuntimeException e) {
-                // We know that some devices like for example the Pixel C are having trouble with the YUV to RGB conversion.
-                // Therefore we continue with the process if an error occurs. This is OK because the face detection is just a
-                // convenience mechanism.
-                log.w(e, "face detection failed");
-                onImageWithFaceCaptured();
+                throw e;  // should lead to app crash
             }
         }, null);
     }
@@ -302,13 +311,39 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
         onFaceDetected();
     }
 
-    private void onReferenceImageCaptured(@NonNull GrayscaleImage img) {
+    private void onReferenceImageCaptured(@NonNull final Bitmap img) {
         log.d("onReferenceImageCaptured(img=%s)", img);
 
-        // keep reference image in memory to apply motion detection algorithm later
-        referenceImage = img;
+        // create motion detection template within the background to keep the UI responsive
+        backgroundHandler.runOnBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                motionDetection.createTemplate(img);
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                uploadImage(img, currentDirection, index, false);
 
-        // now waiting for images with motion using timeout
+                backgroundHandler.runWithDelay(new Runnable() {
+                    @Override
+                    public void run() {
+                        // waiting for images with motion using timeout
+                        imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION;
+                        setupMotionTimeout();
+                    }
+                }, DELAY_TO_CHECK_FOR_MOTION_IN_MILLIS);
+            }
+        }, new Consumer<RuntimeException>() {
+            @Override
+            public void accept(RuntimeException e) {
+                throw e;  // should lead to app crash
+            }
+        }, null);
+    }
+
+    @VisibleForTesting
+    void setupMotionTimeout() {
         taskIdMotionTimeout = backgroundHandler.runWithDelay(new Runnable() {
             @Override
             public void run() {
@@ -318,16 +353,14 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
                 navigateBackWithDelay(false);
             }
         }, MOTION_TIMEOUT_IN_MILLIS);
-
-        uploadImage(referenceImage, currentDirection, successfulUploads, false);
     }
 
-    private void onPotentialImageWithMotionCaptured(@NonNull final GrayscaleImage img) {
+    private void onPotentialImageWithMotionCaptured(@NonNull final Bitmap img) {
         // check for potential motion in the image within the background to keep the UI responsive
         backgroundHandler.runOnBackgroundThread(new Supplier<Boolean>() {
             @Override
             public Boolean get() {
-                return motionDetection.detect(referenceImage, img);
+                return motionDetection.detect(img);
             }
         }, new Consumer<Boolean>() {
             @Override
@@ -347,20 +380,28 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
         }, null);
     }
 
-    private void onImageWithMotionCaptured(@NonNull final GrayscaleImage img) {
-        log.d("onImageWithMotionCaptured(img=%s)", img);
+    private void onImageWithMotionCaptured(@NonNull final Bitmap bitmap) {
+        log.d("onImageWithMotionCaptured(img=%s)", bitmap);
 
-        // cancel motion timeout and hide movement instruction
+        // cancel motion timeout and hide movement instruction text
         backgroundHandler.cancelScheduledTask(taskIdMotionTimeout);
         view.hideMessages();
 
         // uploading image with motion
-        uploadImage(img, destinationDirection, successfulUploads + 1, true);
+        uploadImage(bitmap, destinationDirection, index + 1, true);
+
+        onImageWithMotionProcessed();
     }
 
-    private void uploadImage(final GrayscaleImage img, final MovementDirection direction, final int index,
+
+    /**
+     * Will be called when a image with motion has been processed completely and is currently uploading.
+     */
+    protected abstract void onImageWithMotionProcessed();
+
+    private void uploadImage(final Bitmap bitmap, final MovementDirection direction, final int index,
                              final boolean showUploadingInfo) {
-        log.d("uploadImage(img=%s, direction=%s, index=%s, showUploadingInfo=%s)", img, direction, index, showUploadingInfo);
+        log.d("uploadImage(img=%s, direction=%s, index=%s, showUploadingInfo=%s)", bitmap, direction, index, showUploadingInfo);
 
         if (showUploadingInfo) {
             view.showUploadingImagesInfo();
@@ -370,18 +411,16 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
         backgroundHandler.runOnBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                bioIdWebserviceClient.uploadImage(img, bwsToken, direction, index);
+                bioIdWebserviceClient.uploadImage(bitmap, bwsToken, direction, index);
             }
         }, new Runnable() {
             @Override
             public void run() {
-                successfulUploads++;
                 onUploadSuccessful();
             }
         }, new Consumer<RuntimeException>() {
             @Override
             public void accept(RuntimeException e) {
-                failedUploads++;
                 onUploadFailed(e);
             }
         }, new Runnable() {
@@ -404,11 +443,10 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
     /**
      * Will be called on every failed image upload.
      *
-     * @param e the Exception thrown by {@link BioIdWebserviceClient#uploadImage(GrayscaleImage, BwsToken, MovementDirection, int)}.
+     * @param e the Exception thrown by {@link BioIdWebserviceClient#uploadImage(Bitmap, BwsToken, MovementDirection, int)}.
      */
-    @CallSuper
     protected void onUploadFailed(RuntimeException e) {
-        log.w("onUploadFailed() [successfulUploads=%d, failedUploads=%d]", successfulUploads, failedUploads);
+        log.w("onUploadFailed() [successfulUploads=%d, failedUploads=%d]", successfulUploads, ++failedUploads);
 
         if (failedUploads >= MAX_FAILED_UPLOADS) {
             log.e("exceeded maximum number of failed uploads (MAX_FAILED_UPLOAD=%d)", MAX_FAILED_UPLOADS);
@@ -418,6 +456,7 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
             return;
         }
 
+        final int indexForRetry = index;
         final MovementDirection currentDirectionForRetry = currentDirection;
         final MovementDirection destinationDirectionForRetry = destinationDirection;
 
@@ -430,7 +469,7 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
         backgroundHandler.runWithDelay(new Runnable() {
             @Override
             public void run() {
-                captureImagePair(currentDirectionForRetry, destinationDirectionForRetry);
+                captureImagePair(indexForRetry, currentDirectionForRetry, destinationDirectionForRetry);
             }
         }, DELAY_TO_RETRY_IN_MILLIS);
     }
@@ -439,7 +478,7 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
      * Does reset the views and the presenters state regarding the process of capturing a pair of images.
      * (see also {@link #resetBiometricOperation()})
      */
-    @CallSuper
+    @VisibleForTesting
     void resetCaptureImagePair() {
         log.d("resetCaptureImagePair()");
 
@@ -449,17 +488,21 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
         // cancel eventually scheduled tasks
         backgroundHandler.cancelAllScheduledTasks();
 
+        // reset motion detection template
+        motionDetection.resetTemplate();
+
         // reset presenter
         // (do not reset "permissionState" because this is not related to the biometric operation)
         imageDetectionState = ImageDetectionState.OTHER;
+        index = 0;
         currentDirection = null;
         destinationDirection = null;
-        referenceImage = null;
         taskIdMotionTimeout = null;
         taskIdFaceTimeout = null;
 
         // reset ui
         view.hideLoadingIndicator();
+        view.hideMovementIndicator();
     }
 
     /**
@@ -514,12 +557,20 @@ public abstract class FacialRecognitionBasePresenter<T extends BwsToken> impleme
             view.showMultipleFacesFoundWarning();
             return;
         }
+        if (e instanceof NoSamplesException) {
+            view.showNoSamplesWarning();
+            return;
+        }
         if (e instanceof NoConnectionException) {
             view.showNoConnectionErrorAndNavigateBack();
             return;
         }
         if (e instanceof ServerErrorException) {
             view.showServerErrorAndNavigateBack();
+            return;
+        }
+        if (e instanceof DeviceNotRegisteredException) {
+            view.showDeviceNotRegisteredErrorAndNavigateBack();
             return;
         }
         if (e instanceof WrongCredentialsException) {

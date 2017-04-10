@@ -68,6 +68,6 @@ final class AndroidLoggingHelper implements LoggingHelper {
             throw new IllegalArgumentException(String.format("no active stopwatch session with id '%s'", sessionId));
         }
         long elapsedTime = SystemClock.elapsedRealtime() - startTime;
-        Log.d(tag, format("%s took %dms", sessionId, elapsedTime));
+        Log.d(tag, format("%s took %d ms", sessionId, elapsedTime));
     }
 }

@@ -16,6 +16,7 @@ import static junit.framework.Assert.fail;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -47,6 +48,18 @@ public class HttpRequestHelperTest {
         when(request.code()).thenReturn(200);
         when(request.body("UTF-8")).thenReturn(JSON_AS_STRING);
         when(jsonSerializer.toJsonObject(JSON_AS_STRING)).thenReturn(jsonObject);
+    }
+
+    @Test
+    public void testExecute_doesExecuteRequest() throws Exception {
+        httpRequestHelper.execute(request);
+        verify(request).code();
+    }
+
+    @Test(expected = NoConnectionException.class)
+    public void testExecute_throwsExceptionIfNoConnectionCouldBeEstablished() throws Exception {
+        doThrow(HttpRequest.HttpRequestException.class).when(request).code();
+        httpRequestHelper.execute(request);
     }
 
     @Test

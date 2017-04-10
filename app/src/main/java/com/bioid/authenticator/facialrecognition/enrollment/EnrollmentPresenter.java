@@ -1,7 +1,6 @@
 package com.bioid.authenticator.facialrecognition.enrollment;
 
 import android.content.Context;
-import android.renderscript.RenderScript;
 import android.support.annotation.VisibleForTesting;
 
 import com.bioid.authenticator.base.functional.Consumer;
@@ -20,17 +19,16 @@ import com.bioid.authenticator.facialrecognition.FacialRecognitionFragment;
 /**
  * Presenter for the {@link FacialRecognitionFragment} doing user enrollment.
  */
-public class EnrollmentPresenter extends FacialRecognitionBasePresenter<EnrollmentToken> {
+class EnrollmentPresenter extends FacialRecognitionBasePresenter<EnrollmentToken> {
 
     private final EnrollmentTokenProvider tokenProvider;
     private final BioIdWebserviceClient bioIdWebserviceClient;
 
-    public EnrollmentPresenter(Context ctx, FacialRecognitionContract.View view, RenderScript rs,
-                               EnrollmentTokenProvider tokenProvider) {
-        super(ctx, LoggingHelperFactory.create(EnrollmentPresenter.class), view, rs);
+    EnrollmentPresenter(Context ctx, FacialRecognitionContract.View view, EnrollmentTokenProvider tokenProvider) {
+        super(ctx, LoggingHelperFactory.create(EnrollmentPresenter.class), view);
 
         this.tokenProvider = tokenProvider;
-        this.bioIdWebserviceClient = new BioIdWebserviceClient(rs);
+        this.bioIdWebserviceClient = new BioIdWebserviceClient();
     }
 
     @VisibleForTesting
@@ -59,6 +57,7 @@ public class EnrollmentPresenter extends FacialRecognitionBasePresenter<Enrollme
             @Override
             public void accept(EnrollmentToken token) {
                 bwsToken = token;
+                log.d("using token: %s", bwsToken);
 
                 view.promptForEnrollmentProcessExplanation();
             }
@@ -103,14 +102,14 @@ public class EnrollmentPresenter extends FacialRecognitionBasePresenter<Enrollme
     private void startEnrollmentProcess() {
         log.d("startEnrollmentProcess() [failedOperations=%d]", failedOperations);
 
-        captureImagePair(MovementDirection.any, MovementDirection.any);
+        captureImagePair(0, MovementDirection.any, MovementDirection.any);
     }
 
     @Override
     public void promptToTurn90DegreesAccepted() {
         log.d("promptToTurn90DegreesAccepted()");
 
-        captureImagePair(MovementDirection.any, MovementDirection.any);
+        captureImagePair(successfulUploads, MovementDirection.any, MovementDirection.any);
     }
 
     @Override
@@ -121,8 +120,13 @@ public class EnrollmentPresenter extends FacialRecognitionBasePresenter<Enrollme
     }
 
     @Override
+    protected void onImageWithMotionProcessed() {
+        view.hideMovementIndicator();
+    }
+
+    @Override
     protected void onUploadSuccessful() {
-        log.d("onUploadSuccessful() [successfulUploads=%d, failedUploads=%d]", successfulUploads, failedUploads);
+        log.d("onUploadSuccessful() [successfulUploads=%d, failedUploads=%d]", ++successfulUploads, failedUploads);
 
         if (successfulUploads % 2 == 1) {
             log.d("waiting for second image upload to complete");
@@ -160,9 +164,11 @@ public class EnrollmentPresenter extends FacialRecognitionBasePresenter<Enrollme
         }, new Consumer<RuntimeException>() {
             @Override
             public void accept(RuntimeException e) {
+                log.i("enrollment not successful");
                 showWarningOrError(e);
 
-                if (++failedOperations >= MAX_FAILED_OPERATIONS) {
+                if (++failedOperations >= bwsToken.getMaxTries()) {
+                    log.e("exceeded maximum number of failed operations (maxTries=%d)", bwsToken.getMaxTries());
                     navigateBackWithDelay(false);
                 } else {
                     retryWithDelay();

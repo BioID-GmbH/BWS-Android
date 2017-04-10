@@ -33,12 +33,28 @@ public class HttpRequestHelper {
     }
 
     /**
+     * Executes the given request but does not care about the result.
+     *
+     * @throws NoConnectionException if no connection could be established
+     */
+    public void execute(@NonNull HttpRequest request) {
+        String stopwatchSessionId = log.startStopwatch(getStopwatchSessionId(request));
+
+        try {
+            request.code();  // does execute the actual request
+        } catch (HttpRequestException e) {
+            throw new NoConnectionException(e);
+        } finally {
+            log.stopStopwatch(stopwatchSessionId);
+        }
+    }
+
+    /**
      * Executes the given request and returns the HTTP response body as UTF-8 text on status code 200.
      *
      * @throws Non200StatusException if the HTTP status code was not 200
      * @throws NoConnectionException if no connection could be established
      * @throws ServerErrorException  if the server failed to process the request
-     * @throws TechnicalException    if any other technical error occurred
      */
     @NonNull
     public String asTextIfOk(@NonNull HttpRequest request) {

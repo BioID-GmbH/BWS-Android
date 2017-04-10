@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
-import android.renderscript.RenderScript;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 
@@ -61,8 +60,7 @@ final public class VerificationActivity extends AppCompatActivity {
         FacialRecognitionFragment fragment = new FacialRecognitionFragment();
 
         Context ctx = getApplicationContext();
-        RenderScript rs = RenderScript.create(ctx);
-        FacialRecognitionContract.Presenter presenter = new VerificationPresenter(ctx, fragment, rs, tokenProvider);
+        FacialRecognitionContract.Presenter presenter = new VerificationPresenter(ctx, fragment, tokenProvider);
         fragment.setPresenter(presenter);
 
         return fragment;

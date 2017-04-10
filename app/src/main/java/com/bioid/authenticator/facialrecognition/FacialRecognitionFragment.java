@@ -31,13 +31,15 @@ import com.bioid.authenticator.base.annotations.SurfaceRotation;
 import com.bioid.authenticator.base.camera.CameraException;
 import com.bioid.authenticator.base.camera.CameraHelper;
 import com.bioid.authenticator.base.functional.Consumer;
-import com.bioid.authenticator.base.image.Yuv420Image;
+import com.bioid.authenticator.base.image.IntensityPlane;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.bioid.authenticator.base.network.bioid.webservice.MovementDirection;
 import com.bioid.authenticator.base.notification.DialogHelper;
+import com.bioid.authenticator.base.opengl.HeadOverlayView.Direction;
 import com.bioid.authenticator.databinding.FragmentFacialRecognitionBinding;
 
+import java.util.Random;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -54,6 +56,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     private final Semaphore cameraOpenCloseMutex = new Semaphore(1);
 
     private final LoggingHelper log = LoggingHelperFactory.create(FacialRecognitionFragment.class);
+    private final Random random = new Random();
 
     private FacialRecognitionContract.Presenter presenter;
     private DialogHelper dialogHelper;
@@ -181,23 +184,60 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     }
 
     @Override
-    public void showMovementInfo(@NonNull MovementDirection direction) {
-        int msg = R.string.facial_recognition_move_any;
+    public void showMovementIndicator(@NonNull final MovementDirection direction) {
+        binding.headOverlay.show();
+
         switch (direction) {
+            case any:
+                lookIntoRandomDirection();
+                break;
             case up:
-                msg = R.string.facial_recognition_move_up;
+                binding.headOverlay.lookInto(Direction.UP);
                 break;
             case down:
-                msg = R.string.facial_recognition_move_down;
+                binding.headOverlay.lookInto(Direction.DOWN);
                 break;
             case left:
-                msg = R.string.facial_recognition_move_left;
+                binding.headOverlay.lookInto(Direction.LEFT);
                 break;
             case right:
-                msg = R.string.facial_recognition_move_right;
+                binding.headOverlay.lookInto(Direction.RIGHT);
                 break;
         }
-        showUnobtrusiveMessage(msg);
+    }
+
+    private void lookIntoRandomDirection() {
+        int direction = random.nextInt(4);  // produces a random int in the range of [0;4[
+        switch (direction) {
+            case 0:
+                binding.headOverlay.lookInto(Direction.LEFT);
+                break;
+            case 1:
+                binding.headOverlay.lookInto(Direction.UP);
+                break;
+            case 2:
+                binding.headOverlay.lookInto(Direction.RIGHT);
+                break;
+            case 3:
+                binding.headOverlay.lookInto(Direction.DOWN);
+                break;
+        }
+    }
+
+    @Override
+    public void resetMovementIndicator() {
+        binding.headOverlay.show();
+        binding.headOverlay.lookInto(Direction.AHEAD);
+    }
+
+    @Override
+    public void hideMovementIndicator() {
+        binding.headOverlay.hide();
+    }
+
+    @Override
+    public void showMovementInfo(@NonNull MovementDirection direction) {
+        showUnobtrusiveMessage(R.string.facial_recognition_move);
     }
 
     @Override
@@ -265,6 +305,11 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
         showFullScreenMessage(R.string.facial_recognition_warning_multiple_faces_found);
     }
 
+    @Override
+    public void showNoSamplesWarning() {
+        showFullScreenMessage(R.string.facial_recognition_warning_no_samples);
+    }
+
     private void showUnobtrusiveMessage(@StringRes int message) {
         binding.fullscreenMessage.setVisibility(View.INVISIBLE);
 
@@ -316,6 +361,14 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
                 R.string.verification_error_title,
                 R.string.verification_error_message_no_enrollment,
                 R.drawable.ic_enrollment);
+    }
+
+    @Override
+    public void showDeviceNotRegisteredErrorAndNavigateBack() {
+        showDialogAndNavigateBack(
+                R.string.dialog_title_device_not_registered,
+                R.string.dialog_message_device_not_registered,
+                R.drawable.ic_device);
     }
 
     @Override
@@ -480,7 +533,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
 
                         // Make a in memory copy of the image to close the image from the reader as soon as possible.
                         // This helps the thread running the preview staying up to date.
-                        Yuv420Image imgCopy = Yuv420Image.makeCopy(img);
+                        IntensityPlane imgCopy = IntensityPlane.extract(img);
                         img.close();
 
                         int imageRotation = cameraHelper.getImageRotation(openCamera, getRelativeDisplayRotation());

@@ -1,5 +1,6 @@
 package com.bioid.authenticator.base.network.bioid.webservice;
 
+import android.graphics.Bitmap;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 
@@ -13,6 +14,7 @@ import com.bioid.authenticator.base.network.TechnicalException;
 import com.bioid.authenticator.base.network.bioid.webservice.token.BwsToken;
 import com.bioid.authenticator.base.network.bioid.webservice.token.EnrollmentToken;
 import com.bioid.authenticator.base.network.bioid.webservice.token.VerificationToken;
+import com.bioid.authenticator.testutil.Mocks;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -54,8 +56,8 @@ public class BioIdWebserviceClientTest {
         }
     }
 
-    private static final VerificationToken VERIFICATION_TOKEN = new VerificationToken("verify");
-    private static final EnrollmentToken ENROLLMENT_TOKEN = new EnrollmentToken("enroll");
+    private static final VerificationToken VERIFICATION_TOKEN = Mocks.verificationToken();
+    private static final EnrollmentToken ENROLLMENT_TOKEN = Mocks.enrollmentToken();
     private static final MovementDirection DIRECTION = MovementDirection.any;
     private static final int UPLOAD_INDEX = 1;
     private static final byte[] PNG = {1, 2, 3};
@@ -82,6 +84,8 @@ public class BioIdWebserviceClientTest {
     @Mock
     private GrayscaleImage img;
     @Mock
+    private Bitmap bitmap;
+    @Mock
     private BwsToken bwsToken;
 
     private BioIdWebserviceClient bioIdWebserviceClient;
@@ -94,7 +98,7 @@ public class BioIdWebserviceClientTest {
         when(httpRequestHelper.asJsonIfOk(enrollmentResultRequest)).thenReturn(enrollmentResult);
         when(httpRequestHelper.asJsonIfOk(uploadImageRequest)).thenReturn(uploadResult);
 
-        when(imageFormatConverter.grayscaleImageToPng(img)).thenReturn(PNG);
+        when(imageFormatConverter.bitmapToPng(bitmap)).thenReturn(PNG);
 
         when(encoder.encodeAsBase64(PNG)).thenReturn(PNG_AS_BASE64);
 
@@ -139,6 +143,13 @@ public class BioIdWebserviceClientTest {
         verify();
     }
 
+    @Test(expected = NoSamplesException.class)
+    public void testVerify_throwsExceptionIfNoImagesHaveBeenUploaded() throws Exception {
+        doThrow(new HttpRequestHelper.Non200StatusException(BioIdWebserviceClient.HTTP_STATUS_NO_SAMPLES))
+                .when(httpRequestHelper).asJsonIfOk(verificationResultRequest);
+        verify();
+    }
+
     @Test(expected = NoConnectionException.class)
     public void testVerify_throwsExceptionIfNoConnectionCouldBeEstablished() throws Exception {
         doThrow(NoConnectionException.class).when(httpRequestHelper).asJsonIfOk(verificationResultRequest);
@@ -153,7 +164,7 @@ public class BioIdWebserviceClientTest {
 
     @Test(expected = TechnicalException.class)
     public void testVerify_throwsExceptionOnUnhandledResponseCode() throws Exception {
-        doThrow(new HttpRequestHelper.Non200StatusException(400)).when(httpRequestHelper).asJsonIfOk(verificationResultRequest);
+        doThrow(new HttpRequestHelper.Non200StatusException(404)).when(httpRequestHelper).asJsonIfOk(verificationResultRequest);
         verify();
     }
 
@@ -190,6 +201,13 @@ public class BioIdWebserviceClientTest {
         enroll();
     }
 
+    @Test(expected = NoSamplesException.class)
+    public void testEnroll_throwsExceptionIfNoImagesHaveBeenUploaded() throws Exception {
+        doThrow(new HttpRequestHelper.Non200StatusException(BioIdWebserviceClient.HTTP_STATUS_NO_SAMPLES))
+                .when(httpRequestHelper).asJsonIfOk(enrollmentResultRequest);
+        enroll();
+    }
+
     @Test(expected = NoConnectionException.class)
     public void testEnroll_throwsExceptionIfNoConnectionCouldBeEstablished() throws Exception {
         doThrow(NoConnectionException.class).when(httpRequestHelper).asJsonIfOk(enrollmentResultRequest);
@@ -204,7 +222,7 @@ public class BioIdWebserviceClientTest {
 
     @Test(expected = TechnicalException.class)
     public void testEnroll_throwsExceptionOnUnhandledResponseCode() throws Exception {
-        doThrow(new HttpRequestHelper.Non200StatusException(400)).when(httpRequestHelper).asJsonIfOk(enrollmentResultRequest);
+        doThrow(new HttpRequestHelper.Non200StatusException(404)).when(httpRequestHelper).asJsonIfOk(enrollmentResultRequest);
         enroll();
     }
 
@@ -267,7 +285,7 @@ public class BioIdWebserviceClientTest {
 
     @Test(expected = TechnicalException.class)
     public void testUploadImage_throwsExceptionOnUnhandledResponseCode() throws Exception {
-        doThrow(new HttpRequestHelper.Non200StatusException(400)).when(httpRequestHelper).asJsonIfOk(uploadImageRequest);
+        doThrow(new HttpRequestHelper.Non200StatusException(404)).when(httpRequestHelper).asJsonIfOk(uploadImageRequest);
         uploadImage();
     }
 
@@ -295,6 +313,6 @@ public class BioIdWebserviceClientTest {
 
     private void uploadImage() {
         // actual values are not relevant for test
-        bioIdWebserviceClient.uploadImage(img, bwsToken, DIRECTION, UPLOAD_INDEX);
+        bioIdWebserviceClient.uploadImage(bitmap, bwsToken, DIRECTION, UPLOAD_INDEX);
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 
 import com.bioid.authenticator.base.network.bioid.webservice.BioIdWebserviceClientExtended;
+import com.bioid.authenticator.testutil.Mocks;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,15 +19,15 @@ import static org.mockito.Mockito.when;
 public class BwsTokenProviderTest {
 
     private static final String BCID = "123";
-    private static final VerificationToken VERIFICATION_TOKEN = new VerificationToken("verify");
-    private static final EnrollmentToken ENROLLMENT_TOKEN = new EnrollmentToken("enroll");
+    private static final VerificationToken VERIFICATION_TOKEN = Mocks.verificationToken();
+    private static final EnrollmentToken ENROLLMENT_TOKEN = Mocks.enrollmentToken();
 
     @Mock
     private Context ctx;
     @Mock
     private BioIdWebserviceClientExtended bioIdWebserviceClient;
 
-    private BwsTokenProvider bwsTokenProvider = new BwsTokenProviderForTest();
+    private final BwsTokenProvider bwsTokenProvider = new BwsTokenProviderForTest();
 
     private class BwsTokenProviderForTest extends BwsTokenProvider {
 

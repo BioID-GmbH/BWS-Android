@@ -13,7 +13,7 @@ import com.bioid.authenticator.R;
 /**
  * Can be used to instantiate commonly used dialogs.
  */
-@SuppressWarnings("SameParameterValue")
+@SuppressWarnings({"SameParameterValue", "WeakerAccess"})
 public class DialogHelper {
 
     protected final Activity activity;

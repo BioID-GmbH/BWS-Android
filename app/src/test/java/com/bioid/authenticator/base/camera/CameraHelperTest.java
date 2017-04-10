@@ -42,9 +42,9 @@ public class CameraHelperTest {
 
     private static final String CAMERA_ID_1 = "back_camera";
     private static final String CAMERA_ID_2 = "font_camera";
-    private static final Size PREVIEWSIZE_1 = Mocks.mockSize(10, 10);
-    private static final Size PREVIEWSIZE_640x480 = Mocks.mockSize(640, 480);
-    private static final Size PREVIEWSIZE_2 = Mocks.mockSize(50, 50);
+    private static final Size PREVIEWSIZE_1 = Mocks.size(10, 10);
+    private static final Size PREVIEWSIZE_640x480 = Mocks.size(640, 480);
+    private static final Size PREVIEWSIZE_2 = Mocks.size(50, 50);
     @Rotation
     private static final int SENSOR_ROTATION = 270;
     @SurfaceRotation

@@ -1,13 +1,12 @@
 package com.bioid.authenticator.base.network.bioid.webservice;
 
-import android.renderscript.RenderScript;
+import android.graphics.Bitmap;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 import android.util.ArrayMap;
 
 import com.bioid.authenticator.BuildConfig;
-import com.bioid.authenticator.base.image.GrayscaleImage;
 import com.bioid.authenticator.base.image.ImageFormatConverter;
 import com.bioid.authenticator.base.network.HttpRequest;
 import com.bioid.authenticator.base.network.HttpRequestHelper;
@@ -34,6 +33,8 @@ public class BioIdWebserviceClient {
 
     private static final byte[] DATA_URL_HEADER_PNG_BASE64 = "data:image/png;base64,".getBytes(Charset.forName("UTF-8"));
 
+    @VisibleForTesting
+    static final int HTTP_STATUS_NO_SAMPLES = 400;
     @VisibleForTesting
     static final int HTTP_STATUS_WRONG_CREDENTIALS = 401;
 
@@ -62,13 +63,11 @@ public class BioIdWebserviceClient {
 
     /**
      * Creates a new instance of the BioIdWebserviceClient.
-     *
-     * @param rs RenderScript instance
      */
-    public BioIdWebserviceClient(RenderScript rs) {
+    public BioIdWebserviceClient() {
         this.httpRequestHelper = new HttpRequestHelper();
         this.encoder = new Encoder();
-        this.imageFormatConverter = new ImageFormatConverter(rs);
+        this.imageFormatConverter = new ImageFormatConverter();
     }
 
     @VisibleForTesting
@@ -86,6 +85,7 @@ public class BioIdWebserviceClient {
      * @throws LiveDetectionException     if images do not prove that they are recorded from a live person
      * @throws ChallengeResponseException if the images do not fulfill the challenge-response criteria
      * @throws NoEnrollmentException      if the user has not been enrolled
+     * @throws NoSamplesException         if no valid images have been uploaded
      * @throws NoConnectionException      if no connection could be established
      * @throws ServerErrorException       if the server failed to process the request
      * @throws TechnicalException         if any other technical error occurred
@@ -96,6 +96,9 @@ public class BioIdWebserviceClient {
             JSONObject responseBody = httpRequestHelper.asJsonIfOk(request);
             handleBiometricOperationResult(responseBody);
         } catch (HttpRequestHelper.Non200StatusException e) {
+            if (e.getStatus() == HTTP_STATUS_NO_SAMPLES) {
+                throw new NoSamplesException();
+            }
             throw new TechnicalException(e);
         }
     }
@@ -118,6 +121,7 @@ public class BioIdWebserviceClient {
      * @param enrollmentToken BWS token for enrollment
      * @throws LiveDetectionException     if images do not prove that they are recorded from a live person
      * @throws ChallengeResponseException if the images do not fulfill the challenge-response criteria
+     * @throws NoSamplesException         if no valid images have been uploaded
      * @throws NoConnectionException      if no connection could be established
      * @throws ServerErrorException       if the server failed to process the request
      * @throws TechnicalException         if any other technical error occurred
@@ -128,6 +132,9 @@ public class BioIdWebserviceClient {
             JSONObject responseBody = httpRequestHelper.asJsonIfOk(request);
             handleBiometricOperationResult(responseBody);
         } catch (HttpRequestHelper.Non200StatusException e) {
+            if (e.getStatus() == HTTP_STATUS_NO_SAMPLES) {
+                throw new NoSamplesException();
+            }
             throw new TechnicalException(e);
         }
     }
@@ -180,7 +187,7 @@ public class BioIdWebserviceClient {
     /**
      * Uploads an image for enrollment or verification.
      *
-     * @param img       image which should be uploaded
+     * @param bitmap    image which should be uploaded
      * @param bwsToken  BWS token for enrollment or verification
      * @param direction specifies the movement direction of the head
      * @param index     index of the uploaded image within a series of uploads
@@ -191,10 +198,10 @@ public class BioIdWebserviceClient {
      * @throws ServerErrorException        if the server failed to process the request
      * @throws TechnicalException          if any other technical error occurred
      */
-    public void uploadImage(@NonNull GrayscaleImage img, @NonNull BwsToken bwsToken, @NonNull MovementDirection direction,
+    public void uploadImage(@NonNull Bitmap bitmap, @NonNull BwsToken bwsToken, @NonNull MovementDirection direction,
                             @IntRange(from = 1) int index) {
         try {
-            HttpRequest request = createUploadImageRequest(prepareImage(img), bwsToken.getToken(), direction, index);
+            HttpRequest request = createUploadImageRequest(prepareImage(bitmap), bwsToken.getToken(), direction, index);
 
             JSONObject responseBody = httpRequestHelper.asJsonIfOk(request);
             handleUploadResult(responseBody);
@@ -208,8 +215,8 @@ public class BioIdWebserviceClient {
     }
 
     @NonNull
-    private byte[] prepareImage(@NonNull GrayscaleImage img) {
-        byte[] imgAsPNG = imageFormatConverter.grayscaleImageToPng(img);
+    private byte[] prepareImage(@NonNull Bitmap bitmap) {
+        byte[] imgAsPNG = imageFormatConverter.bitmapToPng(bitmap);
         return asDataUrl(imgAsPNG);
     }
 

@@ -11,7 +11,7 @@ class JsonSerializer {
     /**
      * Deserializes the given string representing a JSON object.
      */
-    public JSONObject toJsonObject(String s) throws JSONException {
+    JSONObject toJsonObject(String s) throws JSONException {
         return new JSONObject(s);
     }
 }

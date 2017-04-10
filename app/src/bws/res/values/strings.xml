@@ -1,3 +1,4 @@
+<!--suppress XmlUnboundNsPrefix -->
 <resources>
     <string name="app_name">BioID BWS</string>
 </resources>

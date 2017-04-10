@@ -1,6 +1,5 @@
 package com.bioid.authenticator.base.network.bioid.webservice;
 
-import android.renderscript.RenderScript;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 import android.util.ArrayMap;
@@ -12,6 +11,7 @@ import com.bioid.authenticator.base.network.HttpRequestHelper;
 import com.bioid.authenticator.base.network.NoConnectionException;
 import com.bioid.authenticator.base.network.ServerErrorException;
 import com.bioid.authenticator.base.network.TechnicalException;
+import com.bioid.authenticator.base.network.bioid.webservice.token.BwsTokenFactory;
 import com.bioid.authenticator.base.network.bioid.webservice.token.EnrollmentToken;
 import com.bioid.authenticator.base.network.bioid.webservice.token.VerificationToken;
 
@@ -29,18 +29,20 @@ public class BioIdWebserviceClientExtended extends BioIdWebserviceClient {
     @VisibleForTesting
     static final String ENROLLMENT_TASK = "enroll";
 
+    private final BwsTokenFactory tokenFactory;
+
     /**
      * Creates a new instance of the BioIdWebserviceClientExtended.
-     *
-     * @param rs RenderScript instance
      */
-    public BioIdWebserviceClientExtended(RenderScript rs) {
-        super(rs);
+    public BioIdWebserviceClientExtended() {
+        this.tokenFactory = new BwsTokenFactory();
     }
 
     @VisibleForTesting
-    BioIdWebserviceClientExtended(HttpRequestHelper httpRequestHelper, Encoder encoder, ImageFormatConverter imageFormatConverter) {
+    BioIdWebserviceClientExtended(HttpRequestHelper httpRequestHelper, Encoder encoder, ImageFormatConverter imageFormatConverter,
+                                  BwsTokenFactory tokenFactory) {
         super(httpRequestHelper, encoder, imageFormatConverter);
+        this.tokenFactory = tokenFactory;
     }
 
     /**
@@ -58,7 +60,7 @@ public class BioIdWebserviceClientExtended extends BioIdWebserviceClient {
         try {
             HttpRequest request = createNewTokenRequest(bcid, VERIFICATION_TASK);
             String responseBody = httpRequestHelper.asTextIfOk(request);
-            return new VerificationToken(responseBody);
+            return tokenFactory.newVerificationToken(responseBody);
         } catch (HttpRequestHelper.Non200StatusException e) {
             throw new TechnicalException(e);
         }
@@ -79,7 +81,7 @@ public class BioIdWebserviceClientExtended extends BioIdWebserviceClient {
         try {
             HttpRequest request = createNewTokenRequest(bcid, ENROLLMENT_TASK);
             String responseBody = httpRequestHelper.asTextIfOk(request);
-            return new EnrollmentToken(responseBody);
+            return tokenFactory.newEnrollmentToken(responseBody);
         } catch (HttpRequestHelper.Non200StatusException e) {
             throw new TechnicalException(e);
         }

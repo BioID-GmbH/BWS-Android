@@ -26,4 +26,7 @@
     <color name="colorOverlayMessageBackground">@color/colorTransparentDialogBackground</color>
     <color name="colorOverlayMessageText">@color/colorTransparentDialogText</color>
 
+    <!-- 3D head -->
+    <color name="color3DHead">#FF3772CC</color>
+
 </resources>

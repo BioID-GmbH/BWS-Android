@@ -5,6 +5,8 @@
 
     <!-- A front-facing camera is required for the facial recognition process. -->
     <uses-feature android:name="android.hardware.camera.front"/>
+    <!-- OpenGL ES 2.0 needed to render 3D head overlay. -->
+    <uses-feature android:glEsVersion="0x00020000"/>
 
     <!-- Camera access needed for the facial recognition. -->
     <uses-permission android:name="android.permission.CAMERA"/>
@@ -19,6 +21,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.1"/>
 
         <activity android:name=".main.MainActivity">
             <intent-filter>

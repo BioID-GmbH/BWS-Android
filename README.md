@@ -55,10 +55,9 @@ If you want to integrate this code into your Android app follow these steps:
         ```
 
   3. copy all Java source files from `app/src/main/java` and `app/src/bws/java/com/bioid/authenticator/base` to your project (do not modify any package names)
-  4. copy all RenderScript source files from `app/src/main/rs` to your project
-  5. copy or merge all Android resources from `app/src/main/res` to your project (of course you do not have to insert the mipmap app icons)
-  6. adjust all imports of `com.bioid.authenticator.BuildConfig`, `com.bioid.authenticator.R` and `import com.bioid.authenticator.databinding.*` in the copied Java sources to your package name
-  7. have a look at `app/src/bws/java/com/bioid/authenticator/main/MainActivity.java` on how to start the verification or enrollment process
+  4. copy or merge all Android resources from `app/src/main/res` to your project (of course you do not have to insert the mipmap app icons)
+  5. adjust all imports of `com.bioid.authenticator.BuildConfig`, `com.bioid.authenticator.R` and `import com.bioid.authenticator.databinding.*` in the copied Java sources to your package name
+  6. have a look at `app/src/bws/java/com/bioid/authenticator/main/MainActivity.java` on how to start the verification or enrollment process
 
 ## Flavors
 

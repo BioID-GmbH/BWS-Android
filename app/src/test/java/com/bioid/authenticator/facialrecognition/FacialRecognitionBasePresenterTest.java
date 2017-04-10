@@ -2,24 +2,25 @@ package com.bioid.authenticator.facialrecognition;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.renderscript.RSIllegalArgumentException;
 
 import com.bioid.authenticator.base.annotations.Rotation;
 import com.bioid.authenticator.base.image.GrayscaleImage;
 import com.bioid.authenticator.base.image.ImageFormatConverter;
 import com.bioid.authenticator.base.image.ImageTransformer;
-import com.bioid.authenticator.base.image.Yuv420Image;
+import com.bioid.authenticator.base.image.IntensityPlane;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.network.NoConnectionException;
 import com.bioid.authenticator.base.network.ServerErrorException;
 import com.bioid.authenticator.base.network.TechnicalException;
 import com.bioid.authenticator.base.network.bioid.webservice.BioIdWebserviceClient;
 import com.bioid.authenticator.base.network.bioid.webservice.ChallengeResponseException;
+import com.bioid.authenticator.base.network.bioid.webservice.DeviceNotRegisteredException;
 import com.bioid.authenticator.base.network.bioid.webservice.LiveDetectionException;
 import com.bioid.authenticator.base.network.bioid.webservice.MovementDirection;
 import com.bioid.authenticator.base.network.bioid.webservice.MultipleFacesFoundException;
 import com.bioid.authenticator.base.network.bioid.webservice.NoEnrollmentException;
 import com.bioid.authenticator.base.network.bioid.webservice.NoFaceFoundException;
+import com.bioid.authenticator.base.network.bioid.webservice.NoSamplesException;
 import com.bioid.authenticator.base.network.bioid.webservice.NotRecognizedException;
 import com.bioid.authenticator.base.network.bioid.webservice.WrongCredentialsException;
 import com.bioid.authenticator.base.network.bioid.webservice.token.BwsToken;
@@ -27,6 +28,7 @@ import com.bioid.authenticator.base.network.bioid.webservice.token.VerificationT
 import com.bioid.authenticator.base.threading.BackgroundHandler;
 import com.bioid.authenticator.facialrecognition.FacialRecognitionBasePresenter.ImageDetectionState;
 import com.bioid.authenticator.facialrecognition.FacialRecognitionBasePresenter.PermissionState;
+import com.bioid.authenticator.testutil.Mocks;
 import com.bioid.authenticator.testutil.SynchronousBackgroundHandler;
 
 import org.junit.Before;
@@ -58,7 +60,8 @@ public class FacialRecognitionBasePresenterTest {
 
     @Rotation
     private static final int IMAGE_ROTATION = 180;
-    private static final VerificationToken BWS_TOKEN = new VerificationToken("could be any BwsToken");
+    private static final VerificationToken BWS_TOKEN = Mocks.verificationToken();
+    private static final int INDEX = 4;
     private static final MovementDirection CURRENT_DIRECTION = MovementDirection.any;
     private static final MovementDirection DESTINATION_DIRECTION = MovementDirection.left;
     private static final int TASK_ID_MOTION_TIMEOUT = 99;
@@ -84,22 +87,14 @@ public class FacialRecognitionBasePresenterTest {
     private MotionDetection motionDetection;
     @Mock
     private BioIdWebserviceClient bioIdWebserviceClient;
-
     @Mock
-    private Yuv420Image imageAsYUV420;
-    @Mock
-    private Bitmap imageAsRGB;
+    private IntensityPlane imageAsIntensityPlane;
     @Mock
     private GrayscaleImage imageAsGrayscale;
     @Mock
     private GrayscaleImage rotatedImageAsGrayscale;
-
     @Mock
-    private Yuv420Image referenceImageAsYUV420;
-    @Mock
-    private GrayscaleImage referenceImageAsGrayscale;
-    @Mock
-    private GrayscaleImage rotatedReferenceImageAsGrayscale;
+    private Bitmap rotatedImageAsBitmap;
 
     private FacialRecognitionBasePresenterForTest presenter;
 
@@ -109,6 +104,8 @@ public class FacialRecognitionBasePresenterTest {
         private boolean onFaceDetectedCalled = false;
         private boolean onNoFaceDetectedCalled = false;
         private boolean onUploadSuccessfulCalled = false;
+        private boolean onImageWithMotionProcessedCalled = false;
+        private boolean disableMotionTimeout = true;
 
         private FacialRecognitionBasePresenterForTest(Context ctx, LoggingHelper log, FacialRecognitionContract.View view,
                                                       BackgroundHandler backgroundHandler, ImageFormatConverter imageFormatConverter,
@@ -139,6 +136,18 @@ public class FacialRecognitionBasePresenterTest {
         @Override
         protected void onNoFaceDetected() {
             onNoFaceDetectedCalled = true;
+        }
+
+        @Override
+        void setupMotionTimeout() {
+            if (!disableMotionTimeout) {
+                super.setupMotionTimeout();
+            }
+        }
+
+        @Override
+        protected void onImageWithMotionProcessed() {
+            onImageWithMotionProcessedCalled = true;
         }
 
         @Override
@@ -318,127 +327,92 @@ public class FacialRecognitionBasePresenterTest {
 
     @Test
     public void captureImagePair_movementInstructionsAreShown() throws Exception {
-        presenter.captureImagePair(CURRENT_DIRECTION, DESTINATION_DIRECTION);
+        presenter.captureImagePair(INDEX, CURRENT_DIRECTION, DESTINATION_DIRECTION);
 
         verify(view).showMovementInfo(DESTINATION_DIRECTION);
+        verify(view).showMovementIndicator(DESTINATION_DIRECTION);
     }
 
     @Test
     public void captureImagePair_nowWaitingForReferenceImage() throws Exception {
-        presenter.captureImagePair(CURRENT_DIRECTION, DESTINATION_DIRECTION);
+        presenter.captureImagePair(INDEX, CURRENT_DIRECTION, DESTINATION_DIRECTION);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_REFERENCE_IMAGE));
     }
 
     @Test
     public void onImageCaptured_ifWaitingForImageWithFace_findFaceInfoMessageWillBeHidden() throws Exception {
-        when(faceDetection.containsFace(imageAsRGB, IMAGE_ROTATION)).thenReturn(true);
+        when(faceDetection.containsFace(rotatedImageAsBitmap)).thenReturn(true);
         mockStateWaitingForImageWithFace();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         verify(view).hideMessages();
     }
 
     @Test
     public void onImageCaptured_ifWaitingForImageWithFace_onFaceDetectedWillBeCalled() throws Exception {
-        when(faceDetection.containsFace(imageAsRGB, IMAGE_ROTATION)).thenReturn(true);
+        when(faceDetection.containsFace(rotatedImageAsBitmap)).thenReturn(true);
         mockStateWaitingForImageWithFace();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         assertThat(presenter.onFaceDetectedCalled, is(true));
     }
 
     @Test
     public void onImageCaptured_ifWaitingForImageWithFace_faceDetectionTimeoutIsCanceled() throws Exception {
-        when(faceDetection.containsFace(imageAsRGB, IMAGE_ROTATION)).thenReturn(true);
+        when(faceDetection.containsFace(rotatedImageAsBitmap)).thenReturn(true);
         mockStateWaitingForImageWithFace();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
-        verify(backgroundHandler).cancelScheduledTask(TASK_ID_FACE_TIMEOUT);
-    }
-
-    @Test
-    public void onImageCaptured_ifYuvToRgbConversionIsBroken_errorWillBeSuppressedAndFaceDetectedWillBeCalled() throws Exception {
-        mockStateWaitingForImageWithFace();
-        when(imageFormatConverter.yuv420ToRgb(imageAsYUV420)).thenThrow(RSIllegalArgumentException.class);
-
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
-
-        verify(view).hideMessages();
-        assertThat(presenter.onFaceDetectedCalled, is(true));
         verify(backgroundHandler).cancelScheduledTask(TASK_ID_FACE_TIMEOUT);
     }
 
     @Test
     public void onImageCaptured_ifNoFaceWasDetected_stateIsResetToWaitingForImageWithFace() throws Exception {
-        when(faceDetection.containsFace(imageAsRGB, IMAGE_ROTATION)).thenReturn(false);
+        when(faceDetection.containsFace(rotatedImageAsBitmap)).thenReturn(false);
         mockStateWaitingForImageWithFace();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_IMAGE_WITH_FACE));
+    }
+
+    @Test
+    public void onImageCaptured_ifWaitingForReferenceImage_motionDetectionTemplateWillBeCreated() throws Exception {
+        mockStateWaitingForReferenceImage();
+
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+
+        verify(motionDetection).createTemplate(rotatedImageAsBitmap);
     }
 
     @Test
     public void onImageCaptured_ifWaitingForReferenceImage_stateIsSetToWaitingForImageWithMotion() throws Exception {
         mockStateWaitingForReferenceImage();
 
-        presenter.onImageCaptured(referenceImageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION));
-    }
-
-    @Test
-    public void onImageCaptured_ifWaitingForReferenceImage_imageWillBeKeptInMemory() throws Exception {
-        mockStateWaitingForReferenceImage();
-
-        presenter.onImageCaptured(referenceImageAsYUV420, IMAGE_ROTATION);
-
-        assertThat(presenter.referenceImage, is(rotatedReferenceImageAsGrayscale));
     }
 
     @Test
     public void onImageCaptured_ifWaitingForReferenceImage_imageWillBeUploaded() throws Exception {
         mockStateWaitingForReferenceImage();
 
-        presenter.onImageCaptured(referenceImageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
-        verify(bioIdWebserviceClient).uploadImage(rotatedReferenceImageAsGrayscale, BWS_TOKEN, CURRENT_DIRECTION, SUCCESSFUL_IMAGE_UPLOADS);
-        assertThat(presenter.successfulUploads, is(SUCCESSFUL_IMAGE_UPLOADS + 1));
+        verify(bioIdWebserviceClient).uploadImage(rotatedImageAsBitmap, BWS_TOKEN, CURRENT_DIRECTION, INDEX);
         assertThat(presenter.onUploadSuccessfulCalled, is(true));
-    }
-
-    @Test
-    public void onImageCaptured_ifMotionDetectionTimeoutOccurs_showsMotionDetectionWarning() throws Exception {
-        mockStateWaitingForReferenceImage();
-        ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
-        when(backgroundHandler.runWithDelay(captor.capture(), anyLong())).thenReturn(SynchronousBackgroundHandler.TASK_ID);
-
-        presenter.onImageCaptured(referenceImageAsYUV420, IMAGE_ROTATION);
-        reset(view, backgroundHandler);  // only look at the mock interactions from the captured runnable
-        captor.getValue().run();
-
-        assertBiometricOperationReset();
-        verify(view).showMotionDetectionWarning();
-    }
-
-    @Test
-    public void onImageCaptured_ifWaitingForReferenceImage_taskIdForMotionTimeoutWillBeSet() throws Exception {
-        mockStateWaitingForReferenceImage();
-
-        presenter.onImageCaptured(referenceImageAsYUV420, IMAGE_ROTATION);
-
-        assertThat(presenter.taskIdMotionTimeout, is(SynchronousBackgroundHandler.TASK_ID));
     }
 
     @Test
     public void onImageCaptured_ifWaitingForImageWithMotion_stateIsSetToOther() throws Exception {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.OTHER));
     }
@@ -447,28 +421,36 @@ public class FacialRecognitionBasePresenterTest {
     public void onImageCaptured_ifWaitingForImageWithMotion_motionDetectionTimeoutIsCanceled() throws Exception {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         verify(backgroundHandler).cancelScheduledTask(TASK_ID_MOTION_TIMEOUT);
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithMotion_movementInfoWillBeHidden() throws Exception {
+    public void onImageCaptured_ifWaitingForImageWithMotion_movementInstructionTextWillBeHidden() throws Exception {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         verify(view, times(2)).hideMessages();  // counting two invocation because the uploading images message will also be hidden
+    }
+
+    @Test
+    public void onImageCaptured_ifWaitingForImageWithMotion_onImageWithMotionProcessedWasCalled() throws Exception {
+        mockStateWaitingForImageWithMotion();
+
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+
+        assertThat(presenter.onImageWithMotionProcessedCalled, is(true));
     }
 
     @Test
     public void onImageCaptured_ifWaitingForImageWithMotion_imageWillBeUploaded() throws Exception {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
-        verify(bioIdWebserviceClient).uploadImage(rotatedImageAsGrayscale, BWS_TOKEN, DESTINATION_DIRECTION, SUCCESSFUL_IMAGE_UPLOADS + 1);
-        assertThat(presenter.successfulUploads, is(SUCCESSFUL_IMAGE_UPLOADS + 1));
+        verify(bioIdWebserviceClient).uploadImage(rotatedImageAsBitmap, BWS_TOKEN, DESTINATION_DIRECTION, INDEX + 1);
         assertThat(presenter.onUploadSuccessfulCalled, is(true));
     }
 
@@ -476,7 +458,7 @@ public class FacialRecognitionBasePresenterTest {
     public void onImageCaptured_ifWaitingForImageWithMotion_uploadingInfoWillBeShownDuringUpload() throws Exception {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         InOrder inOrder = inOrder(view);
         inOrder.verify(view).showUploadingImagesInfo();
@@ -487,7 +469,7 @@ public class FacialRecognitionBasePresenterTest {
     public void onImageCaptured_ifWaitingForImageWithMotion_loadingIndicatorWillBeShownDuringUpload() throws Exception {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         InOrder inOrder = inOrder(view);
         inOrder.verify(view).showLoadingIndicator();
@@ -497,22 +479,13 @@ public class FacialRecognitionBasePresenterTest {
     @Test
     public void onImageCaptured_ifNoMotionWasDetected_stateIsSetToWaitingForImageWithMotion() throws Exception {
         mockStateWaitingForImageWithMotion();
-        when(motionDetection.detect(rotatedReferenceImageAsGrayscale, rotatedImageAsGrayscale)).thenReturn(false);
+        when(motionDetection.detect(rotatedImageAsBitmap)).thenReturn(false);
 
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION));
-        verify(bioIdWebserviceClient, never()).uploadImage(any(GrayscaleImage.class), any(BwsToken.class),
+        verify(bioIdWebserviceClient, never()).uploadImage(any(Bitmap.class), any(BwsToken.class),
                 any(MovementDirection.class), anyInt());
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void onImageCaptured_ifMotionDetectionAlgorithmFailed_exceptionWillBeRethrown() throws Exception {
-        mockStateWaitingForImageWithMotion();
-        RuntimeException e = new RuntimeException("motion detection algorithm failed");
-        doThrow(e).when(motionDetection).detect(rotatedReferenceImageAsGrayscale, rotatedImageAsGrayscale);
-
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
     }
 
     @Test
@@ -520,19 +493,41 @@ public class FacialRecognitionBasePresenterTest {
         presenter.failedUploads = 0;
         mockStateWaitingForReferenceImage();
         doThrow(new NotRecognizedException()).when(bioIdWebserviceClient)
-                .uploadImage(any(GrayscaleImage.class), any(BwsToken.class), any(MovementDirection.class), anyInt());
+                .uploadImage(any(Bitmap.class), any(BwsToken.class), any(MovementDirection.class), anyInt());
 
-        presenter.onImageCaptured(referenceImageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
         assertThat(presenter.failedUploads, is(1));
     }
 
     @Test
     public void onImageCaptured_ifStateIsOther_doNothing() throws Exception {
-        presenter.onImageCaptured(imageAsYUV420, IMAGE_ROTATION);
+        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
 
-        verify(bioIdWebserviceClient, never()).uploadImage(any(GrayscaleImage.class), any(BwsToken.class),
+        verify(bioIdWebserviceClient, never()).uploadImage(any(Bitmap.class), any(BwsToken.class),
                 any(MovementDirection.class), anyInt());
+    }
+
+    @Test
+    public void setupMotionTimeout_taskIdForMotionTimeoutWillBeSet() throws Exception {
+        presenter.disableMotionTimeout = false;
+        backgroundHandler.doNothingOnRunWithDelay();
+
+        presenter.setupMotionTimeout();
+
+        assertThat(presenter.taskIdMotionTimeout, is(SynchronousBackgroundHandler.TASK_ID));
+    }
+
+    @Test
+    public void setupMotionTimeout_ifMotionDetectionTimeoutOccurs_showsMotionDetectionWarning() throws Exception {
+        presenter.disableMotionTimeout = false;
+        mockStateWaitingForReferenceImage();
+
+        presenter.setupMotionTimeout();
+        presenter.taskIdMotionTimeout = null;  // would normally be unset by delayed runnable if execution is asynchronous
+
+        assertBiometricOperationReset();
+        verify(view).showMotionDetectionWarning();
     }
 
     @Test
@@ -566,12 +561,14 @@ public class FacialRecognitionBasePresenterTest {
 
     @Test
     public void onUploadFailed_ifLessThanThreeUploadsDidFail_retryCapturingImagePair() throws Exception {
+        presenter.index = 42;
         presenter.currentDirection = MovementDirection.right;
         presenter.destinationDirection = MovementDirection.up;
-        presenter.failedUploads = 2;
+        presenter.failedUploads = 1;
 
         presenter.onUploadFailed(new NotRecognizedException());
 
+        assertThat(presenter.index, is(42));
         assertThat(presenter.currentDirection, is(MovementDirection.right));
         assertThat(presenter.destinationDirection, is(MovementDirection.up));
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_REFERENCE_IMAGE));
@@ -580,7 +577,6 @@ public class FacialRecognitionBasePresenterTest {
     @Test
     public void resetCaptureImagePair_stateResetIsApplied() throws Exception {
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION;
-        presenter.referenceImage = rotatedReferenceImageAsGrayscale;
 
         presenter.resetCaptureImagePair();
 
@@ -590,7 +586,6 @@ public class FacialRecognitionBasePresenterTest {
     @Test
     public void resetBiometricOperation_stateResetIsApplied() throws Exception {
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION;
-        presenter.referenceImage = rotatedReferenceImageAsGrayscale;
 
         presenter.resetBiometricOperation();
 
@@ -633,6 +628,13 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
+    public void showWarningOrError_showNoSamplesWarningIsCalled() throws Exception {
+        presenter.showWarningOrError(new NoSamplesException());
+
+        verify(view).showNoSamplesWarning();
+    }
+
+    @Test
     public void showWarningOrError_showNoConnectionErrorIsCalled() throws Exception {
         presenter.showWarningOrError(new NoConnectionException(null));
 
@@ -644,6 +646,13 @@ public class FacialRecognitionBasePresenterTest {
         presenter.showWarningOrError(new ServerErrorException());
 
         verify(view).showServerErrorAndNavigateBack();
+    }
+
+    @Test
+    public void showWarningOrError_showDeviceNotRegisteredErrorIsCalled() throws Exception {
+        presenter.showWarningOrError(new DeviceNotRegisteredException());
+
+        verify(view).showDeviceNotRegisteredErrorAndNavigateBack();
     }
 
     @Test
@@ -680,42 +689,48 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     private void mockStateWaitingForImageWithFace() {
+        presenter.index = INDEX;
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_FACE;
 
-        when(imageFormatConverter.yuv420ToRgb(imageAsYUV420)).thenReturn(imageAsRGB);
+        when(imageFormatConverter.intensityPlaneToGrayscaleImage(imageAsIntensityPlane)).thenReturn(imageAsGrayscale);
+        when(imageTransformer.rotate(imageAsGrayscale, IMAGE_ROTATION)).thenReturn(rotatedImageAsGrayscale);
+        when(imageFormatConverter.grayscaleImageToBitmap(rotatedImageAsGrayscale)).thenReturn(rotatedImageAsBitmap);
     }
 
     private void mockStateWaitingForReferenceImage() {
+        presenter.index = INDEX;
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_REFERENCE_IMAGE;
 
-        when(imageFormatConverter.yuv420ToGrayscaleImage(referenceImageAsYUV420)).thenReturn(referenceImageAsGrayscale);
-        when(imageTransformer.rotate(referenceImageAsGrayscale, IMAGE_ROTATION)).thenReturn(rotatedReferenceImageAsGrayscale);
-
-        backgroundHandler.doNothingOnRunWithDelay();
+        when(imageFormatConverter.intensityPlaneToGrayscaleImage(imageAsIntensityPlane)).thenReturn(imageAsGrayscale);
+        when(imageTransformer.rotate(imageAsGrayscale, IMAGE_ROTATION)).thenReturn(rotatedImageAsGrayscale);
+        when(imageFormatConverter.grayscaleImageToBitmap(rotatedImageAsGrayscale)).thenReturn(rotatedImageAsBitmap);
     }
 
     private void mockStateWaitingForImageWithMotion() {
+        presenter.index = INDEX;
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION;
-        presenter.referenceImage = rotatedReferenceImageAsGrayscale;
+        when(motionDetection.detect(rotatedImageAsBitmap)).thenReturn(true);
 
-        when(imageFormatConverter.yuv420ToGrayscaleImage(imageAsYUV420)).thenReturn(imageAsGrayscale);
+        when(imageFormatConverter.intensityPlaneToGrayscaleImage(imageAsIntensityPlane)).thenReturn(imageAsGrayscale);
         when(imageTransformer.rotate(imageAsGrayscale, IMAGE_ROTATION)).thenReturn(rotatedImageAsGrayscale);
-
-        when(motionDetection.detect(rotatedReferenceImageAsGrayscale, rotatedImageAsGrayscale)).thenReturn(true);
+        when(imageFormatConverter.grayscaleImageToBitmap(rotatedImageAsGrayscale)).thenReturn(rotatedImageAsBitmap);
     }
 
     private void assertCaptureImagePairReset() {
         verify(backgroundHandler).unsubscribeFromAllBackgroundTasks();
         verify(backgroundHandler).cancelAllScheduledTasks();
 
+        verify(motionDetection).resetTemplate();
+
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.OTHER));
+        assertThat(presenter.index, is(0));
         assertThat(presenter.currentDirection, is(nullValue()));
         assertThat(presenter.destinationDirection, is(nullValue()));
-        assertThat(presenter.referenceImage, is(nullValue()));
         assertThat(presenter.taskIdMotionTimeout, is(nullValue()));
         assertThat(presenter.taskIdFaceTimeout, is(nullValue()));
 
         verify(view).hideLoadingIndicator();
+        verify(view).hideMovementIndicator();
     }
 
     private void assertBiometricOperationReset() {
