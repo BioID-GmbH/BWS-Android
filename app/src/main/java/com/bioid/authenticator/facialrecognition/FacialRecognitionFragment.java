@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.databinding.DataBindingUtil;
 import android.graphics.ImageFormat;
@@ -100,12 +101,16 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     public void onResume() {
         super.onResume();
 
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);  // do not rotate during biometric operation
+
         presenter.onResume();
     }
 
     @Override
     public void onPause() {
         super.onPause();
+
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 
         presenter.onPause();
     }

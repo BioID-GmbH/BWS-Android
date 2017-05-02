@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_verification">Проверить</string>
+    <string name="nav_enrollment">ачислить лицо (Регистрация)</string>
+
+    <string name="dialog_button_continue">Продолжить</string>
+    <string name="dialog_title_missing_permission">Требуется разрешение</string>
+    <string name="dialog_message_missing_camera_permission">Необходимо разрешить доступ к камере для разпознования лиц.</string>
+    <string name="dialog_title_no_connection">Подключение не удалось</string>
+    <string name="dialog_message_no_connection">Вероятно Вы не подключены к интернету.</string>
+    <string name="dialog_title_device_not_registered">Устройство не зарегистрировано</string>
+    <string name="dialog_message_device_not_registered">Пожалуйста, убедитесь, что ваше устройство зарегистрировано.</string>
+    <string name="dialog_title_wrong_credentials">Неправильные идентификационные данные</string>
+    <string name="dialog_message_wrong_credentials">Предоставлены неправильные идентификационные данные.</string>
+    <string name="dialog_title_server_error">Ошибка в сервере</string>
+    <string name="dialog_message_server_error">Сервер временно недоступен. Пожалуйста повторите попытку позже.</string>
+
+    <string name="facial_recognition_move">Следуйте за мной…</string>
+    <string name="facial_recognition_init">Инициализация…</string>
+    <string name="facial_recognition_find_face">Попытка обнаружить лицо…</string>
+    <string name="facial_recognition_uploading">Загрузка изображений…</string>
+    <string name="facial_recognition_warning_motion_detection">Движение не обнаружено</string>
+    <string name="facial_recognition_warning_live_detection">Присутствие не установленно</string>
+    <string name="facial_recognition_warning_no_face_found">Лицо не найдено</string>
+    <string name="facial_recognition_warning_multiple_faces_found">Найдено несколько лиц</string>
+    <string name="facial_recognition_warning_no_samples">Лицо не найдено</string>
+
+    <string name="verification_waiting">Проверка…</string>
+    <string name="verification_success">Успешная проверка</string>
+    <string name="verification_error_title">Сбой проверки</string>
+    <string name="verification_error_message_no_enrollment">Вы не зарегистрированы!</string>
+    <string name="verification_warning_not_recognized">Сбой проверки</string>
+    <string name="verification_warning_challenge_response">Запрос не удался</string>
+
+    <string name="enrollment_waiting">Обучение…</string>
+    <string name="enrollment_success">Успешная регистрация</string>
+    <string name="enrollment_process_explanation_title">Просто как селф</string>
+    <string name="enrollment_process_explanation_message">Зачисление происходит для того, чтобы BioID научилось распознавать вас. Будут сняты четыре комплекта фотографий. Держите телефон на уровне глаз и следуйте инструкциям.</string>
+    <string name="enrollment_process_turn90degrees_title">Пожалуйста, повернитесь</string>
+    <string name="enrollment_process_turn90degrees_message">Повернитесь на 90 градусов вправо, чтобы изменить освещения.</string>
+</resources>

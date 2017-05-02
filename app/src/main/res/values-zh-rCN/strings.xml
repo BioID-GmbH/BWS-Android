@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_verification">验证</string>
+    <string name="nav_enrollment">"录制人脸</string>
+
+    <string name="dialog_button_continue">继续</string>
+    <string name="dialog_title_missing_permission">必须取得授权</string>
+    <string name="dialog_message_missing_camera_permission">您必须授权本App取得摄影机的使用以便用做人脸识别。</string>
+    <string name="dialog_title_no_connection">连线错误</string>
+    <string name="dialog_message_no_connection">网络似乎离线中。</string>
+    <string name="dialog_title_device_not_registered">装置尚未注册</string>
+    <string name="dialog_message_device_not_registered">请确认您的装置是否已经注册。</string>
+    <string name="dialog_title_wrong_credentials">登入资料错误</string>
+    <string name="dialog_message_wrong_credentials">您所提供的登入资料无效。</string>
+    <string name="dialog_title_server_error">伺服器错误</string>
+    <string name="dialog_message_server_error">伺服器暂时无法连接，请稍后再试。</string>
+
+    <string name="facial_recognition_move">请跟着我做…</string>
+    <string name="facial_recognition_init">初始化…</string>
+    <string name="facial_recognition_find_face">侦测人脸中…</string>
+    <string name="facial_recognition_uploading">影像上载中…</string>
+    <string name="facial_recognition_warning_motion_detection">侦测不到任何移动</string>
+    <string name="facial_recognition_warning_live_detection">活体检测失败</string>
+    <string name="facial_recognition_warning_no_face_found">无法找到脸</string>
+    <string name="facial_recognition_warning_multiple_faces_found">侦测到多张脸</string>
+    <string name="facial_recognition_warning_no_samples">无法找到脸</string>
+
+    <string name="verification_waiting">"验证中…</string>
+    <string name="verification_success">验证成功</string>
+    <string name="verification_error_title">验证失败</string>
+    <string name="verification_error_message_no_enrollment">您还未录制模版！</string>
+    <string name="verification_warning_not_recognized">验证失败</string>
+    <string name="verification_warning_challenge_response">指定回应验证失败</string>
+
+    <string name="enrollment_waiting">计算中…</string>
+    <string name="enrollment_success">模版录制成功</string>
+    <string name="enrollment_process_explanation_title">模版录制</string>
+    <string name="enrollment_process_explanation_message">BioID是透过模版的录制来认识您的。请将手机维持在直视水平线，然后跟着提示，自拍四组影像。</string>
+    <string name="enrollment_process_turn90degrees_title">即将完成</string>
+    <string name="enrollment_process_turn90degrees_message">请向右转90度，以便取得不同的光线。</string>
+</resources>

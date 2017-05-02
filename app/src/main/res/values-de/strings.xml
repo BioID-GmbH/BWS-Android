@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_verification">Erkennung</string>
+    <string name="nav_enrollment">Einlernen (Enrollment)</string>
+
+    <string name="dialog_button_continue">Weiter</string>
+    <string name="dialog_title_missing_permission">Erlaubnis erforderlich</string>
+    <string name="dialog_message_missing_camera_permission">Für die Gesichtserkennung muss Zugriff auf die Kamera gewährt werden.</string>
+    <string name="dialog_title_no_connection">Verbindungsfehler</string>
+    <string name="dialog_message_no_connection">Das Gerät ist nicht mit dem Internet verbunden.</string>
+    <string name="dialog_title_device_not_registered">Das Gerät ist nicht registriert</string>
+    <string name="dialog_message_device_not_registered">Stellen Sie sicher, dass das Gerät registriert ist.</string>
+    <string name="dialog_title_wrong_credentials">Falsche Zugangsdaten</string>
+    <string name="dialog_message_wrong_credentials">Die angegebenen Zugangsdaten sind ungültig.</string>
+    <string name="dialog_title_server_error">Serverfehler</string>
+    <string name="dialog_message_server_error">Der Server ist vorübergehend nicht erreichbar. Bitte versuchen Sie es später noch einmal.</string>
+
+    <string name="facial_recognition_move">Folgen Sie mir…</string>
+    <string name="facial_recognition_init">Initialisierung…</string>
+    <string name="facial_recognition_find_face">Suche Gesicht…</string>
+    <string name="facial_recognition_uploading">Bilder werden übertragen…</string>
+    <string name="facial_recognition_warning_motion_detection">Keine Bewegung detektiert.</string>
+    <string name="facial_recognition_warning_live_detection">Lebenderkennung fehlgeschlagen.</string>
+    <string name="facial_recognition_warning_no_face_found">Es wurde kein Gesicht gefunden.</string>
+    <string name="facial_recognition_warning_multiple_faces_found">Mehr als ein Gesicht wurde gefunden.</string>
+    <string name="facial_recognition_warning_no_samples">Es wurde kein Gesicht gefunden.</string>
+
+    <string name="verification_waiting">Erkennen…</string>
+    <string name="verification_success">Erkennung erfolgreich.</string>
+    <string name="verification_error_title">Erkennung fehlgeschlagen.</string>
+    <string name="verification_error_message_no_enrollment">Sie sind noch nicht eingelernt.</string>
+    <string name="verification_warning_not_recognized">Erkennung fehlgeschlagen</string>
+    <string name="verification_warning_challenge_response">Challenge-Response Prüfung fehlgeschlagen.</string>
+
+    <string name="enrollment_waiting">Einlernen…</string>
+    <string name="enrollment_success">Einlernen erfolgreich.</string>
+    <string name="enrollment_process_explanation_title">So einfach wie ein Selfie</string>
+    <string name="enrollment_process_explanation_message">Das Einlernen erfasst Ihr Gesicht biometrisch. Dazu werden vier Bilder gemacht. Halten Sie das Gerät auf Augenhöhe und folgen Sie den Anweisungen.</string>
+    <string name="enrollment_process_turn90degrees_title">Bitte seitlich drehen.</string>
+    <string name="enrollment_process_turn90degrees_message">Machen Sie nun eine viertel Drehung nach rechts, um andere Lichtverhältnisse zu schaffen.</string>
+</resources>

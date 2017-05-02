@@ -1,4 +1,4 @@
-<!--suppress XmlUnboundNsPrefix -->
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="nav_verification">Verify</string>
     <string name="nav_enrollment">Enroll face</string>
@@ -6,8 +6,8 @@
     <string name="dialog_button_continue">Continue</string>
     <string name="dialog_title_missing_permission">Permission Required</string>
     <string name="dialog_message_missing_camera_permission">For facial recognition access to the camera needs to be granted.</string>
-    <string name="dialog_title_no_connection">No Connection</string>
-    <string name="dialog_message_no_connection">The app could not connect to the server.</string>
+    <string name="dialog_title_no_connection">Connection Error</string>
+    <string name="dialog_message_no_connection">The Internet connection appears to be offline.</string>
     <string name="dialog_title_device_not_registered">Device not registered</string>
     <string name="dialog_message_device_not_registered">Please ensure that your device is registered.</string>
     <string name="dialog_title_wrong_credentials">Wrong Credentials</string>
@@ -18,17 +18,17 @@
     <string name="facial_recognition_move">Follow me…</string>
     <string name="facial_recognition_init">Initializing…</string>
     <string name="facial_recognition_find_face">Trying to detect face…</string>
-    <string name="facial_recognition_uploading">Uploading…</string>
+    <string name="facial_recognition_uploading">Uploading images…</string>
     <string name="facial_recognition_warning_motion_detection">No motion detected</string>
     <string name="facial_recognition_warning_live_detection">Failed Liveness Detection</string>
     <string name="facial_recognition_warning_no_face_found">No face found</string>
     <string name="facial_recognition_warning_multiple_faces_found">Multiple faces found</string>
     <string name="facial_recognition_warning_no_samples">No face found</string>
 
-    <string name="verification_waiting">Verifying …</string>
+    <string name="verification_waiting">Verifying…</string>
     <string name="verification_success">Successful Verification</string>
     <string name="verification_error_title">Failed Verification</string>
-    <string name="verification_error_message_no_enrollment">You have to complete the enrollment process first.</string>
+    <string name="verification_error_message_no_enrollment">You are not enrolled!</string>
     <string name="verification_warning_not_recognized">Failed Verification</string>
     <string name="verification_warning_challenge_response">Challenge-Response failed</string>
 
