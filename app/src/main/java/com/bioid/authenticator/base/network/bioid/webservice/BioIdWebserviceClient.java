@@ -8,6 +8,8 @@ import android.util.ArrayMap;
 
 import com.bioid.authenticator.BuildConfig;
 import com.bioid.authenticator.base.image.ImageFormatConverter;
+import com.bioid.authenticator.base.logging.LoggingHelper;
+import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.bioid.authenticator.base.network.HttpRequest;
 import com.bioid.authenticator.base.network.HttpRequestHelper;
 import com.bioid.authenticator.base.network.NoConnectionException;
@@ -31,7 +33,8 @@ public class BioIdWebserviceClient {
     @SuppressWarnings("WeakerAccess")  // used in bws flavor
     static final String BWS_BASE_URL = String.format("https://%s.bioid.com", BuildConfig.BIOID_BWS_INSTANCE_NAME);
 
-    private static final byte[] DATA_URL_HEADER_PNG_BASE64 = "data:image/png;base64,".getBytes(Charset.forName("UTF-8"));
+    private static final String MIME_TYPE_PNG = "image/png";
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     @VisibleForTesting
     static final int HTTP_STATUS_NO_SAMPLES = 400;
@@ -58,6 +61,7 @@ public class BioIdWebserviceClient {
 
     @SuppressWarnings("WeakerAccess")  // used in bws flavor
     final HttpRequestHelper httpRequestHelper;
+    private final LoggingHelper log;
     private final Encoder encoder;
     private final ImageFormatConverter imageFormatConverter;
 
@@ -66,13 +70,16 @@ public class BioIdWebserviceClient {
      */
     public BioIdWebserviceClient() {
         this.httpRequestHelper = new HttpRequestHelper();
+        this.log = LoggingHelperFactory.create(BioIdWebserviceClient.class);
         this.encoder = new Encoder();
         this.imageFormatConverter = new ImageFormatConverter();
     }
 
     @VisibleForTesting
-    BioIdWebserviceClient(HttpRequestHelper httpRequestHelper, Encoder encoder, ImageFormatConverter imageFormatConverter) {
+    BioIdWebserviceClient(HttpRequestHelper httpRequestHelper, LoggingHelper log, Encoder encoder,
+                          ImageFormatConverter imageFormatConverter) {
         this.httpRequestHelper = httpRequestHelper;
+        this.log = log;
         this.encoder = encoder;
         this.imageFormatConverter = imageFormatConverter;
     }
@@ -201,10 +208,10 @@ public class BioIdWebserviceClient {
     public void uploadImage(@NonNull Bitmap bitmap, @NonNull BwsToken bwsToken, @NonNull MovementDirection direction,
                             @IntRange(from = 1) int index) {
         try {
-            HttpRequest request = createUploadImageRequest(prepareImage(bitmap), bwsToken.getToken(), direction, index);
+            HttpRequest request = createUploadImageRequest(prepareImage(bitmap), bwsToken, direction, index);
 
             JSONObject responseBody = httpRequestHelper.asJsonIfOk(request);
-            handleUploadResult(responseBody);
+            handleImageUploadResult(responseBody);
         } catch (HttpRequestHelper.Non200StatusException e) {
             if (e.getStatus() == HTTP_STATUS_WRONG_CREDENTIALS) {
                 throw new WrongCredentialsException();
@@ -217,30 +224,32 @@ public class BioIdWebserviceClient {
     @NonNull
     private byte[] prepareImage(@NonNull Bitmap bitmap) {
         byte[] imgAsPNG = imageFormatConverter.bitmapToPng(bitmap);
-        return asDataUrl(imgAsPNG);
+        return asDataUrl(MIME_TYPE_PNG, imgAsPNG);
     }
 
     @NonNull
-    private byte[] asDataUrl(@NonNull byte[] imgAsPNG) {
-        byte[] imgAsBase64 = encoder.encodeAsBase64(imgAsPNG);
+    @SuppressWarnings("SameParameterValue")
+    private byte[] asDataUrl(@NonNull String mimeType, @NonNull byte[] data) {
+        byte[] dataUrlHeader = ("data:" + mimeType + ";base64,").getBytes(UTF_8);
+        byte[] dataAsBase64 = encoder.encodeAsBase64(data);
 
-        byte[] dataUrl = new byte[DATA_URL_HEADER_PNG_BASE64.length + imgAsBase64.length];
-        System.arraycopy(DATA_URL_HEADER_PNG_BASE64, 0, dataUrl, 0, DATA_URL_HEADER_PNG_BASE64.length);
-        System.arraycopy(imgAsBase64, 0, dataUrl, DATA_URL_HEADER_PNG_BASE64.length, imgAsBase64.length);
+        byte[] dataUrl = new byte[dataUrlHeader.length + dataAsBase64.length];
+        System.arraycopy(dataUrlHeader, 0, dataUrl, 0, dataUrlHeader.length);
+        System.arraycopy(dataAsBase64, 0, dataUrl, dataUrlHeader.length, dataAsBase64.length);
         return dataUrl;
     }
 
     @VisibleForTesting
-    protected HttpRequest createUploadImageRequest(@NonNull byte[] imgAsDataUrl, @NonNull String token,
+    protected HttpRequest createUploadImageRequest(@NonNull byte[] imgAsDataUrl, @NonNull BwsToken token,
                                                    @NonNull MovementDirection direction, @IntRange(from = 1) int index) {
         try {
             Map<String, String> queryParameters = new ArrayMap<>(3);
             queryParameters.put("tag", direction.name());
             queryParameters.put("index", Integer.toString(index));
-            queryParameters.put("trait", "FACE");
+            queryParameters.put("trait", getTraitParamForImageUpload(token));
 
             return HttpRequest.post(BWS_BASE_URL + "/extension/upload", queryParameters, true)
-                    .authorization("Bearer " + token)
+                    .authorization("Bearer " + token.getToken())
                     .acceptJson()
                     .contentType("text/plain", "utf-8")
                     .connectTimeout(5000)
@@ -251,7 +260,18 @@ public class BioIdWebserviceClient {
         }
     }
 
-    private void handleUploadResult(@NonNull JSONObject json) {
+    @NonNull
+    private String getTraitParamForImageUpload(@NonNull BwsToken token) {
+        if (token.hasFaceTrait() && !token.hasPeriocularTrait()) {
+            return Trait.Face.name();
+        } else if (!token.hasFaceTrait() && token.hasPeriocularTrait()) {
+            return Trait.Periocular.name();
+        } else {
+            return Trait.Face.name() + ", " + Trait.Periocular.name();
+        }
+    }
+
+    private void handleImageUploadResult(@NonNull JSONObject json) {
         try {
             boolean accepted = json.getBoolean(JSON_KEY_ACCEPTED);
             if (!accepted) {
@@ -262,7 +282,8 @@ public class BioIdWebserviceClient {
                     case ERROR_CODE_MULTIPLE_FACES:
                         throw new MultipleFacesFoundException();
                     default:
-                        throw new TechnicalException("unknown error code: " + error);
+                        log.w("mapped quality check error '%s' to '%s'", error, ERROR_CODE_NO_FACE);
+                        throw new NoFaceFoundException();
                 }
             }
         } catch (JSONException e) {

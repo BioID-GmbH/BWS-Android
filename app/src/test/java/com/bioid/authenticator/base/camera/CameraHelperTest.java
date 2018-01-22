@@ -21,9 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
 import java.util.List;
 
@@ -157,11 +155,8 @@ public class CameraHelperTest {
     @Test(expected = CameraException.class)
     public void testSetupCaptureRequestForPreview_cameraAccessExceptionOnSetRepeatingRequestThrowsException() throws Exception {
         // do always throw CameraAccessException
-        session = mock(CameraCaptureSession.class, new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                throw new CameraAccessException(CameraAccessException.CAMERA_ERROR);
-            }
+        session = mock(CameraCaptureSession.class, invocation -> {
+            throw new CameraAccessException(CameraAccessException.CAMERA_ERROR);
         });
 
         cameraHelper.setupCaptureRequestForPreview(session, camera, surfaces);

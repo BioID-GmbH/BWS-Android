@@ -9,6 +9,8 @@ import android.support.v4.content.ContextCompat;
 import android.view.MotionEvent;
 
 import com.bioid.authenticator.R;
+import com.bioid.authenticator.base.logging.LoggingHelper;
+import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 
 import org.rajawali3d.Object3D;
 import org.rajawali3d.animation.Animation3D;
@@ -24,6 +26,7 @@ import org.rajawali3d.renderer.Renderer;
  */
 class RajawaliHeadRenderer extends Renderer {
 
+    private static final LoggingHelper LOG = LoggingHelperFactory.create(RajawaliHeadRenderer.class);
     @ColorRes
     private static final int MODEL_COLOR = R.color.color3DHead;
     @FloatRange(from = 0.0, to = 1.0)
@@ -79,6 +82,7 @@ class RajawaliHeadRenderer extends Renderer {
             return;
         }
 
+        LOG.d("showModel()");
         head.setVisible(true);
     }
 
@@ -90,8 +94,7 @@ class RajawaliHeadRenderer extends Renderer {
             return;
         }
 
-        stopActiveAnimation();
-
+        LOG.d("hideModel()");
         head.setVisible(false);
     }
 
@@ -109,7 +112,7 @@ class RajawaliHeadRenderer extends Renderer {
             return;
         }
 
-        stopActiveAnimation();
+        LOG.d("rotateModel(axis=%s, angle=%d)", axis, angle);
 
         Animation3D animation = new RotateOnAxisAnimation(axis, angle);
         animation.setDurationMilliseconds(animationDurationInMillis);
@@ -120,19 +123,26 @@ class RajawaliHeadRenderer extends Renderer {
         lastAnimation = animation;
     }
 
-    private void stopActiveAnimation() {
-        if (lastAnimation != null && !lastAnimation.isEnded()) {
-            lastAnimation.pause();
-            lastAnimation = null;
-        }
+    /**
+     * Returns true if the 3D head does currently perform an animation.
+     */
+    boolean isAnimationRunning() {
+        return lastAnimation != null && lastAnimation.isPlaying();
     }
 
     /**
-     * Does reset the model rotation.
+     * Does reset the model rotation and stops an eventually running animation.
      */
     void resetModelRotation() {
         if (!getSceneInitialized()) {
             return;
+        }
+
+        LOG.d("resetModelRotation()");
+
+        if (isAnimationRunning()) {
+            lastAnimation.pause();
+            lastAnimation = null;
         }
 
         head.resetToLookAt();

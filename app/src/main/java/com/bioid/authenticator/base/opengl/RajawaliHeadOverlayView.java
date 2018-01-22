@@ -89,18 +89,25 @@ public class RajawaliHeadOverlayView extends SurfaceView implements HeadOverlayV
     @Override
     public void hide() {
         renderer.hideModel();
+    }
 
+    @Override
+    public void reset() {
         renderer.resetModelRotation();
         currentDirection = Direction.AHEAD;
     }
 
     @Override
     public void lookInto(@NonNull Direction targetDirection) {
+        LOG.d("lookInto(%s) [currentDirection=%s]", targetDirection, currentDirection);
+
+        if (isDiagonalAnimation(targetDirection) || renderer.isAnimationRunning()) {
+            reset();  // diagonal or multiple animations are not supported -> reset and move to target direction
+        }
+
         if (currentDirection == targetDirection) {
             return;  // nothing to do
         }
-
-        performIntegrityCheck(targetDirection);
 
         Vector3.Axis axis = currentDirection == Direction.AHEAD ?
                 DIRECTION_TO_AXIS.get(targetDirection) :
@@ -113,16 +120,14 @@ public class RajawaliHeadOverlayView extends SurfaceView implements HeadOverlayV
         currentDirection = targetDirection;
     }
 
-    private void performIntegrityCheck(@NonNull Direction targetDirection) {
+    private boolean isDiagonalAnimation(@NonNull Direction targetDirection) {
         if (currentDirection == Direction.AHEAD || targetDirection == Direction.AHEAD) {
-            return;  // nothing bad can happen
+            return false;
         }
 
         Vector3.Axis axisForCurrentDirection = DIRECTION_TO_AXIS.get(currentDirection);
         Vector3.Axis axisForTargetDirection = DIRECTION_TO_AXIS.get(targetDirection);
 
-        if (axisForCurrentDirection != axisForTargetDirection) {
-            throw new IllegalStateException("The 3D head does not support diagonal animations.");
-        }
+        return axisForCurrentDirection != axisForTargetDirection;
     }
 }

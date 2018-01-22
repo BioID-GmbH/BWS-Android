@@ -6,6 +6,7 @@ import android.util.ArrayMap;
 
 import com.bioid.authenticator.BuildConfig;
 import com.bioid.authenticator.base.image.ImageFormatConverter;
+import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.network.HttpRequest;
 import com.bioid.authenticator.base.network.HttpRequestHelper;
 import com.bioid.authenticator.base.network.NoConnectionException;
@@ -39,9 +40,9 @@ public class BioIdWebserviceClientExtended extends BioIdWebserviceClient {
     }
 
     @VisibleForTesting
-    BioIdWebserviceClientExtended(HttpRequestHelper httpRequestHelper, Encoder encoder, ImageFormatConverter imageFormatConverter,
-                                  BwsTokenFactory tokenFactory) {
-        super(httpRequestHelper, encoder, imageFormatConverter);
+    BioIdWebserviceClientExtended(HttpRequestHelper httpRequestHelper, LoggingHelper log, Encoder encoder,
+                                  ImageFormatConverter imageFormatConverter, BwsTokenFactory tokenFactory) {
+        super(httpRequestHelper, log, encoder, imageFormatConverter);
         this.tokenFactory = tokenFactory;
     }
 

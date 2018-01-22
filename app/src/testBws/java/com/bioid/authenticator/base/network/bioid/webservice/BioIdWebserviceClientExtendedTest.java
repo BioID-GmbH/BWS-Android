@@ -41,7 +41,7 @@ public class BioIdWebserviceClientExtendedTest {
 
         BioIdWebserviceClientExtendedForTest(HttpRequestHelper httpRequestHelper, BwsTokenFactory tokenFactory) {
             // using null dependencies makes sure the base class functionality won't be tested
-            super(httpRequestHelper, null, null, tokenFactory);
+            super(httpRequestHelper, null, null, null, tokenFactory);
         }
 
         @Override

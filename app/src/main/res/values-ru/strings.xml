@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="nav_verification">Проверить</string>
-    <string name="nav_enrollment">ачислить лицо (Регистрация)</string>
+    <string name="nav_enrollment">Зачислить лицо (Регистрация)</string>
 
     <string name="dialog_button_continue">Продолжить</string>
     <string name="dialog_title_missing_permission">Требуется разрешение</string>
@@ -34,7 +34,7 @@
 
     <string name="enrollment_waiting">Обучение…</string>
     <string name="enrollment_success">Успешная регистрация</string>
-    <string name="enrollment_process_explanation_title">Просто как селф</string>
+    <string name="enrollment_process_explanation_title">Просто как селфи</string>
     <string name="enrollment_process_explanation_message">Зачисление происходит для того, чтобы BioID научилось распознавать вас. Будут сняты четыре комплекта фотографий. Держите телефон на уровне глаз и следуйте инструкциям.</string>
     <string name="enrollment_process_turn90degrees_title">Пожалуйста, повернитесь</string>
     <string name="enrollment_process_turn90degrees_message">Повернитесь на 90 градусов вправо, чтобы изменить освещения.</string>

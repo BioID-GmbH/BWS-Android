@@ -3,8 +3,6 @@ package com.bioid.authenticator.facialrecognition.verification;
 import android.content.Context;
 import android.support.annotation.VisibleForTesting;
 
-import com.bioid.authenticator.base.functional.Consumer;
-import com.bioid.authenticator.base.functional.Supplier;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.bioid.authenticator.base.network.bioid.webservice.BioIdWebserviceClient;
@@ -22,7 +20,7 @@ import com.bioid.authenticator.facialrecognition.MotionDetection;
 /**
  * Presenter for the {@link FacialRecognitionFragment} doing user verification.
  */
-class VerificationPresenter extends FacialRecognitionBasePresenter<VerificationToken> {
+public class VerificationPresenter extends FacialRecognitionBasePresenter<VerificationToken> {
 
     /**
      * This delay makes it more likely to have a stable auto focus and white balance setup.
@@ -38,7 +36,7 @@ class VerificationPresenter extends FacialRecognitionBasePresenter<VerificationT
     private final VerificationTokenProvider tokenProvider;
     private final BioIdWebserviceClient bioIdWebserviceClient;
 
-    VerificationPresenter(Context ctx, FacialRecognitionContract.View view, VerificationTokenProvider tokenProvider) {
+    public VerificationPresenter(Context ctx, FacialRecognitionContract.View view, VerificationTokenProvider tokenProvider) {
         super(ctx, LoggingHelperFactory.create(VerificationPresenter.class), view);
         this.tokenProvider = tokenProvider;
         this.bioIdWebserviceClient = new BioIdWebserviceClient();
@@ -62,36 +60,19 @@ class VerificationPresenter extends FacialRecognitionBasePresenter<VerificationT
 
         view.showInitialisationInfo();
 
-        backgroundHandler.runWithDelay(new Runnable() {
-            @Override
-            public void run() {
-                backgroundHandler.runOnBackgroundThread(new Supplier<VerificationToken>() {
-                    @Override
-                    public VerificationToken get() {
-                        return tokenProvider.requestVerificationToken(ctx);
-                    }
-                }, new Consumer<VerificationToken>() {
-                    @Override
-                    public void accept(VerificationToken token) {
-                        bwsToken = token;
-                        log.d("using token: %s", bwsToken);
+        backgroundHandler.runWithDelay(() -> backgroundHandler.runOnBackgroundThread(
+                () -> tokenProvider.requestVerificationToken(ctx),
+                token -> {
+                    bwsToken = token;
+                    failedOperations = 0;  // bound to token
+                    log.d("using token: %s", bwsToken);
 
-                        detectFace();
-                    }
-                }, new Consumer<RuntimeException>() {
-                    @Override
-                    public void accept(RuntimeException e) {
-                        resetBiometricOperation();
-                        showWarningOrError(e);
-                    }
-                }, new Runnable() {
-                    @Override
-                    public void run() {
-                        view.hideMessages();
-                    }
-                });
-            }
-        }, AUTO_FOCUS_AND_WHITE_BALANCE_DELAY_IN_MILLIS);
+                    detectFace();
+                }, e -> {
+                    resetBiometricOperation();
+                    showWarningOrError(e);
+                }, view::hideMessages)
+                , AUTO_FOCUS_AND_WHITE_BALANCE_DELAY_IN_MILLIS);
     }
 
     @Override
@@ -166,12 +147,9 @@ class VerificationPresenter extends FacialRecognitionBasePresenter<VerificationT
         final int nextIndex = nextPairForChallenge + 1;  // using +1 because the first (any) image is not specified within challenge
         final MovementDirection nextCurrentDirection = currentChallenge[nextPairForChallenge];
         final MovementDirection nextTargetDirection = currentChallenge[nextPairForChallenge + 1];
-        backgroundHandler.runWithDelay(new Runnable() {
-            @Override
-            public void run() {
-                captureImagePair(nextIndex, nextCurrentDirection, nextTargetDirection);
-            }
-        }, DELAY_TO_CONTINUE_WITHIN_CHALLENGE_IN_MILLIS);
+        backgroundHandler.runWithDelay(
+                () -> captureImagePair(nextIndex, nextCurrentDirection, nextTargetDirection)
+                , DELAY_TO_CONTINUE_WITHIN_CHALLENGE_IN_MILLIS);
 
         nextPairForChallenge += 2;
     }
@@ -227,48 +205,27 @@ class VerificationPresenter extends FacialRecognitionBasePresenter<VerificationT
 
         view.showVerifyingInfo();
 
-        backgroundHandler.runOnBackgroundThread(new Runnable() {
-            @Override
-            public void run() {
-                bioIdWebserviceClient.verify(bwsToken);
-            }
-        }, new Runnable() {
-            @Override
-            public void run() {
-                log.i("verification successful");
+        backgroundHandler.runOnBackgroundThread(() -> bioIdWebserviceClient.verify(bwsToken), () -> {
+            log.i("verification successful");
 
-                view.showVerificationSuccess();
-                navigateBackWithDelay(true);
-            }
-        }, new Consumer<RuntimeException>() {
-            @Override
-            public void accept(RuntimeException e) {
-                log.i("verification not successful");
-                showWarningOrError(e);
+            view.showVerificationSuccess();
+            navigateBackWithDelay(true);
+        }, e -> {
+            log.i("verification not successful");
+            showWarningOrError(e);
 
-                if (++failedOperations >= bwsToken.getMaxTries()) {
-                    log.e("exceeded maximum number of failed operations (maxTries=%d)", bwsToken.getMaxTries());
-                    navigateBackWithDelay(false);
-                } else {
-                    retryProcessWithDelay();
-                }
+            if (++failedOperations >= bwsToken.getMaxTries()) {
+                log.e("exceeded maximum number of failed operations (maxTries=%d)", bwsToken.getMaxTries());
+                navigateBackWithDelay(false);
+            } else {
+                retryProcessWithDelay();
             }
-        }, new Runnable() {
-            @Override
-            public void run() {
-                resetBiometricOperation();
-            }
-        });
+        }, this::resetBiometricOperation);
     }
 
     private void retryProcessWithDelay() {
         log.d("retryProcessWithDelay()");
 
-        backgroundHandler.runWithDelay(new Runnable() {
-            @Override
-            public void run() {
-                startVerificationProcess();
-            }
-        }, DELAY_TO_RETRY_IN_MILLIS);
+        backgroundHandler.runWithDelay(this::startVerificationProcess, DELAY_TO_RETRY_IN_MILLIS);
     }
 }

@@ -9,20 +9,26 @@ Therefore we want to provide some sample code that might be used in Android to i
 ## Setup
 
 To successfully run this sample app, you need to have access to an existing BWS installation.
-If you don't have this access you can [register for a trial instance](https://playground.bioid.com/BioIDWebService/TrialInstanceRequisition).
+If you don't have this access you can [register for a trial instance](https://bwsportal.bioid.com/register).
 
-After gaining access to a BWS installation the **Credentials** pane shows the name for your BWS instance in the section **BWS Client Configuration**, as well as other information needed for the user BCIDs.
+After you have access to the BioID Web Service (BWS) you can continue to create and configure your client app.
+
+### Create and configure your client app on bwsportal.bioid.com
+After you are logged in to the portal, select your client and go to the 'Configuration' section. 
+The 'Client configuration' contains all information for accessing the BWS, as well as other information needed for the user BCIDs.
 
 For the creation of BCIDs for users in your app the following information is needed:
 
-  * Storage e.g. `bws`
-  * Partition e.g. `12`
-  * UserID – this is a unique number you assign to the user, e.g. `4711`
+- Storage e.g. `bws`
+- Partition e.g. `12`
+- UserID – this is a unique number you assign to the user, e.g. `4711`
+
 
 The BCID with the example values from above is `bws.12.4711`.
+Take a look at Web API endpoint for e.g. `https://bws.bioid.com`. In this case the BWS instance name is `bws`.
 
-Go to the **Client Apps** pane and click the **Register a new Client App** button.
-In the dialog window the client app identifier and secret is shown.
+Click on the 'Web API keys' the add button. In the dialog window the app identifier and app secret is shown.
+
 
 Now you can add the following properties to your users `gradle.properties` file.
 
@@ -63,4 +69,4 @@ If you want to integrate this code into your Android app follow these steps:
 
 In case you are wondering why the code is split into the **main** and **bws** source set, this is because of the closed source **connect** flavor.
 The **connect** flavor uses BioID Connect as identity management.
-You can try out this [facial recognition app](https://mobile.bioid.com/) - available via [Play Store](https://play.google.com/store/apps/details?id=com.bioid.authenticator).
+You can try out this [facial recognition app](https://www.bioid.com/facial-recognition-app) - available via [Play Store](https://play.google.com/store/apps/details?id=com.bioid.authenticator).

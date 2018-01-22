@@ -12,6 +12,9 @@
     <color name="colorAccent">@color/bioid_lima_green</color>
     <color name="colorPrimaryInverse">@android:color/white</color>
 
+    <!-- adaptive icons -->
+    <color name="ic_launcher_background">@android:color/white</color>
+
     <!-- button -->
     <color name="colorButton">@color/colorPrimary</color>
     <color name="colorButtonPressed">@color/colorPrimaryDark</color>

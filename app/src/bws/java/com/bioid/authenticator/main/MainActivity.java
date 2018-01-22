@@ -6,7 +6,6 @@ import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
 
 import com.bioid.authenticator.BuildConfig;
 import com.bioid.authenticator.R;
@@ -35,22 +34,16 @@ public class MainActivity extends AppCompatActivity {
         // In a real world scenario you would determine the BCID based on the user which should be verified or enrolled.
         final BwsTokenProvider tokenProvider = new BwsTokenProvider(BuildConfig.BIOID_BCID);
 
-        binding.verificationNavButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, VerificationActivity.class);
-                intent.putExtra(VerificationActivity.EXTRA_TOKEN_PROVIDER, tokenProvider);
-                startActivityForResult(intent, REQUEST_CODE_VERIFY);
-            }
+        binding.verificationNavButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, VerificationActivity.class);
+            intent.putExtra(VerificationActivity.EXTRA_TOKEN_PROVIDER, tokenProvider);
+            startActivityForResult(intent, REQUEST_CODE_VERIFY);
         });
 
-        binding.enrollmentNavButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, EnrollmentActivity.class);
-                intent.putExtra(EnrollmentActivity.EXTRA_TOKEN_PROVIDER, tokenProvider);
-                startActivityForResult(intent, REQUEST_CODE_ENROLL);
-            }
+        binding.enrollmentNavButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, EnrollmentActivity.class);
+            intent.putExtra(EnrollmentActivity.EXTRA_TOKEN_PROVIDER, tokenProvider);
+            startActivityForResult(intent, REQUEST_CODE_ENROLL);
         });
     }
 

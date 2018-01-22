@@ -3,8 +3,6 @@ package com.bioid.authenticator.facialrecognition.enrollment;
 import android.content.Context;
 import android.support.annotation.VisibleForTesting;
 
-import com.bioid.authenticator.base.functional.Consumer;
-import com.bioid.authenticator.base.functional.Supplier;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.bioid.authenticator.base.network.bioid.webservice.BioIdWebserviceClient;
@@ -19,12 +17,12 @@ import com.bioid.authenticator.facialrecognition.FacialRecognitionFragment;
 /**
  * Presenter for the {@link FacialRecognitionFragment} doing user enrollment.
  */
-class EnrollmentPresenter extends FacialRecognitionBasePresenter<EnrollmentToken> {
+public class EnrollmentPresenter extends FacialRecognitionBasePresenter<EnrollmentToken> {
 
     private final EnrollmentTokenProvider tokenProvider;
     private final BioIdWebserviceClient bioIdWebserviceClient;
 
-    EnrollmentPresenter(Context ctx, FacialRecognitionContract.View view, EnrollmentTokenProvider tokenProvider) {
+    public EnrollmentPresenter(Context ctx, FacialRecognitionContract.View view, EnrollmentTokenProvider tokenProvider) {
         super(ctx, LoggingHelperFactory.create(EnrollmentPresenter.class), view);
 
         this.tokenProvider = tokenProvider;
@@ -48,31 +46,19 @@ class EnrollmentPresenter extends FacialRecognitionBasePresenter<EnrollmentToken
 
         view.showInitialisationInfo();
 
-        backgroundHandler.runOnBackgroundThread(new Supplier<EnrollmentToken>() {
-            @Override
-            public EnrollmentToken get() {
-                return tokenProvider.requestEnrollmentToken(ctx);
-            }
-        }, new Consumer<EnrollmentToken>() {
-            @Override
-            public void accept(EnrollmentToken token) {
-                bwsToken = token;
-                log.d("using token: %s", bwsToken);
+        backgroundHandler.runOnBackgroundThread(
+                () -> tokenProvider.requestEnrollmentToken(ctx),
+                token -> {
+                    bwsToken = token;
+                    failedOperations = 0;  // bound to token
+                    log.d("using token: %s", bwsToken);
 
-                view.promptForEnrollmentProcessExplanation();
-            }
-        }, new Consumer<RuntimeException>() {
-            @Override
-            public void accept(RuntimeException e) {
-                resetBiometricOperation();
-                showWarningOrError(e);
-            }
-        }, new Runnable() {
-            @Override
-            public void run() {
-                view.hideMessages();
-            }
-        });
+                    view.promptForEnrollmentProcessExplanation();
+                }, e -> {
+                    resetBiometricOperation();
+                    showWarningOrError(e);
+                },
+                view::hideMessages);
     }
 
     @Override
@@ -148,48 +134,28 @@ class EnrollmentPresenter extends FacialRecognitionBasePresenter<EnrollmentToken
 
         view.showEnrollingInfo();
 
-        backgroundHandler.runOnBackgroundThread(new Runnable() {
-            @Override
-            public void run() {
-                bioIdWebserviceClient.enroll(bwsToken);
-            }
-        }, new Runnable() {
-            @Override
-            public void run() {
-                log.i("enrollment successful");
-
-                view.showEnrollmentSuccess();
-                navigateBackWithDelay(true);
-            }
-        }, new Consumer<RuntimeException>() {
-            @Override
-            public void accept(RuntimeException e) {
-                log.i("enrollment not successful");
-                showWarningOrError(e);
-
-                if (++failedOperations >= bwsToken.getMaxTries()) {
-                    log.e("exceeded maximum number of failed operations (maxTries=%d)", bwsToken.getMaxTries());
-                    navigateBackWithDelay(false);
-                } else {
-                    retryWithDelay();
-                }
-            }
-        }, new Runnable() {
-            @Override
-            public void run() {
-                resetBiometricOperation();
-            }
-        });
+        backgroundHandler.runOnBackgroundThread(
+                () -> bioIdWebserviceClient.enroll(bwsToken),
+                () -> {
+                    log.i("enrollment successful");
+                    view.showEnrollmentSuccess();
+                    navigateBackWithDelay(true);
+                }, e -> {
+                    log.i("enrollment not successful");
+                    showWarningOrError(e);
+                    if (++failedOperations >= bwsToken.getMaxTries()) {
+                        log.e("exceeded maximum number of failed operations (maxTries=%d)", bwsToken.getMaxTries());
+                        navigateBackWithDelay(false);
+                    } else {
+                        retryWithDelay();
+                    }
+                },
+                this::resetBiometricOperation);
     }
 
     private void retryWithDelay() {
         log.d("retryWithDelay()");
 
-        backgroundHandler.runWithDelay(new Runnable() {
-            @Override
-            public void run() {
-                startEnrollmentProcess();
-            }
-        }, DELAY_TO_RETRY_IN_MILLIS);
+        backgroundHandler.runWithDelay(this::startEnrollmentProcess, DELAY_TO_RETRY_IN_MILLIS);
     }
 }

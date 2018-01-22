@@ -44,6 +44,9 @@ public class VerificationToken extends BwsToken {
                 "token='" + getToken() + '\'' +
                 ", expirationTime=" + getExpirationTime() +
                 ", maxTries=" + getMaxTries() +
+                ", hasFaceTrait=" + hasFaceTrait() +
+                ", hasPeriocularTrait=" + hasPeriocularTrait() +
+                ", hasVoiceTrait=" + hasVoiceTrait() +
                 ", challenges=" + Arrays.deepToString(challenges) +
                 '}';
     }

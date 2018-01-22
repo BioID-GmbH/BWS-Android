@@ -6,6 +6,7 @@ import android.support.annotation.NonNull;
 
 import com.bioid.authenticator.base.image.GrayscaleImage;
 import com.bioid.authenticator.base.image.ImageFormatConverter;
+import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.network.HttpRequest;
 import com.bioid.authenticator.base.network.HttpRequestHelper;
 import com.bioid.authenticator.base.network.NoConnectionException;
@@ -35,12 +36,13 @@ public class BioIdWebserviceClientTest {
     @SuppressWarnings("UnusedParameters")
     private class BioIdWebserviceClientForTest extends BioIdWebserviceClient {
 
-        BioIdWebserviceClientForTest(HttpRequestHelper httpRequestHelper, Encoder encoder, ImageFormatConverter imageFormatConverter) {
-            super(httpRequestHelper, encoder, imageFormatConverter);
+        BioIdWebserviceClientForTest(HttpRequestHelper httpRequestHelper, LoggingHelper log, Encoder encoder,
+                                     ImageFormatConverter imageFormatConverter) {
+            super(httpRequestHelper, log, encoder, imageFormatConverter);
         }
 
         @Override
-        protected HttpRequest createUploadImageRequest(@NonNull byte[] imgAsDataUrl, @NonNull String token,
+        protected HttpRequest createUploadImageRequest(@NonNull byte[] imgAsDataUrl, @NonNull BwsToken token,
                                                        @NonNull MovementDirection direction, @IntRange(from = 1) int index) {
             return uploadImageRequest;
         }
@@ -65,6 +67,8 @@ public class BioIdWebserviceClientTest {
 
     @Mock
     private HttpRequestHelper httpRequestHelper;
+    @Mock
+    private LoggingHelper log;
     @Mock
     private Encoder encoder;
     @Mock
@@ -92,7 +96,7 @@ public class BioIdWebserviceClientTest {
 
     @Before
     public void setUp() throws Exception {
-        bioIdWebserviceClient = new BioIdWebserviceClientForTest(httpRequestHelper, encoder, imageFormatConverter);
+        bioIdWebserviceClient = new BioIdWebserviceClientForTest(httpRequestHelper, log, encoder, imageFormatConverter);
 
         when(httpRequestHelper.asJsonIfOk(verificationResultRequest)).thenReturn(verificationResult);
         when(httpRequestHelper.asJsonIfOk(enrollmentResultRequest)).thenReturn(enrollmentResult);
@@ -257,7 +261,7 @@ public class BioIdWebserviceClientTest {
         uploadImage();
     }
 
-    @Test(expected = TechnicalException.class)
+    @Test(expected = NoFaceFoundException.class)
     public void testUploadImage_throwsExceptionOnUnknownErrorCode() throws Exception {
         when(uploadResult.getBoolean(BioIdWebserviceClient.JSON_KEY_ACCEPTED)).thenReturn(false);
         when(uploadResult.getString(BioIdWebserviceClient.JSON_KEY_ERROR)).thenReturn("this error code is unknown");

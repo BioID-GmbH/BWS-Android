@@ -31,7 +31,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
+ 
 @RunWith(MockitoJUnitRunner.class)
 public class EnrollmentPresenterTest {
 
@@ -132,9 +132,11 @@ public class EnrollmentPresenterTest {
     @Test
     public void startBiometricOperation_tokenIsFetchedAndSet() throws Exception {
         presenter.setBwsToken(null);
+        presenter.setFailedOperations(1);
         presenter.startBiometricOperation();
 
         assertThat(presenter.getBwsToken(), is(ENROLLMENT_TOKEN));
+        assertThat(presenter.getFailedOperations(), is(0));
     }
 
     @Test(expected = IllegalStateException.class)

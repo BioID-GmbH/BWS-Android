@@ -1,5 +1,6 @@
 package com.bioid.authenticator.base.threading;
 
+import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.CountDownTimer;
 import android.support.annotation.IntRange;
@@ -84,20 +85,14 @@ final public class AsynchronousBackgroundHandler implements BackgroundHandler {
     public int runOnBackgroundThread(@NonNull final Runnable runnable,
                                      @Nullable final Runnable onSuccess, @Nullable Consumer<RuntimeException> onError,
                                      @Nullable Runnable onComplete) {
-        final int taskId = getTaskId(backgroundTasks);
+        int taskId = getTaskId(backgroundTasks);
 
-        AsyncTask<Void, Void, Object> backgroundTask = new AsyncTaskWithException<>(taskId, new Supplier<Object>() {
-            @Override
-            public Object get() {
-                runnable.run();
-                return new Object();  // returning a non null value indicates success
-            }
-        }, new Consumer<Object>() {
-            @Override
-            public void accept(Object ignored) {
-                if (onSuccess != null) {
-                    onSuccess.run();
-                }
+        AsyncTask<Void, Void, Object> backgroundTask = new AsyncTaskWithException<>(taskId, () -> {
+            runnable.run();
+            return new Object();  // returning a non null value indicates success
+        }, ignored -> {
+            if (onSuccess != null) {
+                onSuccess.run();
             }
         }, onError, onComplete).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
@@ -125,6 +120,7 @@ final public class AsynchronousBackgroundHandler implements BackgroundHandler {
         backgroundTasks.clear();
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class AsyncTaskWithException<T> extends AsyncTask<Void, Void, T> {
 
         private final int taskId;
@@ -135,9 +131,9 @@ final public class AsynchronousBackgroundHandler implements BackgroundHandler {
 
         private RuntimeException exception = null;
 
-        public AsyncTaskWithException(int taskId, @NonNull Supplier<T> supplier,
-                                      @Nullable Consumer<T> onSuccess, @Nullable Consumer<RuntimeException> onError,
-                                      @Nullable Runnable onComplete) {
+        AsyncTaskWithException(int taskId, @NonNull Supplier<T> supplier,
+                               @Nullable Consumer<T> onSuccess, @Nullable Consumer<RuntimeException> onError,
+                               @Nullable Runnable onComplete) {
             this.taskId = taskId;
             this.supplier = supplier;
             this.onSuccess = onSuccess;

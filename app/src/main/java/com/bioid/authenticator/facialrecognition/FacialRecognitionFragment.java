@@ -1,6 +1,7 @@
 package com.bioid.authenticator.facialrecognition;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
@@ -15,9 +16,11 @@ import android.hardware.camera2.CameraManager;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
+import android.support.annotation.VisibleForTesting;
 import android.support.v13.app.FragmentCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Size;
@@ -31,14 +34,18 @@ import com.bioid.authenticator.base.annotations.ConfigurationOrientation;
 import com.bioid.authenticator.base.annotations.SurfaceRotation;
 import com.bioid.authenticator.base.camera.CameraException;
 import com.bioid.authenticator.base.camera.CameraHelper;
-import com.bioid.authenticator.base.functional.Consumer;
 import com.bioid.authenticator.base.image.IntensityPlane;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.bioid.authenticator.base.network.bioid.webservice.MovementDirection;
+import com.bioid.authenticator.base.network.bioid.webservice.Task;
+import com.bioid.authenticator.base.network.bioid.webservice.token.EnrollmentTokenProvider;
+import com.bioid.authenticator.base.network.bioid.webservice.token.VerificationTokenProvider;
 import com.bioid.authenticator.base.notification.DialogHelper;
 import com.bioid.authenticator.base.opengl.HeadOverlayView.Direction;
 import com.bioid.authenticator.databinding.FragmentFacialRecognitionBinding;
+import com.bioid.authenticator.facialrecognition.enrollment.EnrollmentPresenter;
+import com.bioid.authenticator.facialrecognition.verification.VerificationPresenter;
 
 import java.util.Random;
 import java.util.concurrent.Semaphore;
@@ -46,9 +53,13 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * The FacialRecognitionFragment uses the front-facing camera to either verify or enroll a user via facial recognition.
- * It is required to call {@link #setPresenter(FacialRecognitionContract.Presenter)} before using the fragment.
+ * <p>
+ * It is required to use one of the factory methods when instantiating the fragment!
  */
 public final class FacialRecognitionFragment extends Fragment implements FacialRecognitionContract.View {
+
+    private static final String ARG_TOKEN_PROVIDER = "token_provider";
+    private static final String ARG_TASK = "task";
 
     // request code for requestPermissions() and onRequestPermissionsResult()
     private static final int REQUEST_CODE_CAMERA_PERMISSION = 0;
@@ -69,16 +80,74 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     private Size previewSize;
     private ImageReader imageReader;
 
+
     /**
-     * Setting the Presenter of the fragment.
+     * Do not use this constructor directly!
+     * It is required to use one of the factory methods instead.
      */
-    public void setPresenter(FacialRecognitionContract.Presenter presenter) {
-        this.presenter = presenter;
+    public FacialRecognitionFragment() {
+    }
+
+    /**
+     * Factory method to create a new fragment instance for verification.
+     */
+    public static FacialRecognitionFragment newInstanceForVerification(VerificationTokenProvider tokenProvider) {
+        return newInstanceWithTokenProvider(tokenProvider, Task.Verification);
+    }
+
+    /**
+     * Factory method to create a new fragment instance for enrollment.
+     */
+    public static FacialRecognitionFragment newInstanceForEnrollment(EnrollmentTokenProvider tokenProvider) {
+        return newInstanceWithTokenProvider(tokenProvider, Task.Enrollment);
+    }
+
+    private static FacialRecognitionFragment newInstanceWithTokenProvider(Parcelable tokenProvider, Task task) {
+        FacialRecognitionFragment fragment = new FacialRecognitionFragment();
+
+        Bundle args = new Bundle(2);
+        args.putParcelable(ARG_TOKEN_PROVIDER, tokenProvider);
+        args.putString(ARG_TASK, task.name());
+        fragment.setArguments(args);
+
+        return fragment;
+    }
+
+    private FacialRecognitionBasePresenter createPresenter() {
+        Bundle args = getArguments();
+        if (args == null) {
+            throw new IllegalStateException("missing arguments");
+        }
+
+        Parcelable tokenProvider = args.getParcelable(ARG_TOKEN_PROVIDER);
+        if (tokenProvider == null) {
+            throw new IllegalStateException("TokenProvider is null");
+        }
+
+        Task task;
+        try {
+            task = Task.valueOf(args.getString(ARG_TASK));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Task is null or an invalid string");
+        }
+
+        Context ctx = getContext().getApplicationContext();
+
+        switch (task) {
+            case Verification:
+                return new VerificationPresenter(ctx, this, (VerificationTokenProvider) tokenProvider);
+            case Enrollment:
+                return new EnrollmentPresenter(ctx, this, (EnrollmentTokenProvider) tokenProvider);
+            default:
+                throw new IllegalStateException("unknown biometric task: " + task);
+        }
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        presenter = createPresenter();
 
         setRetainInstance(true);  // does retain the presenter to preserve state across configuration changes
 
@@ -154,38 +223,20 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
 
     @Override
     public void promptForEnrollmentProcessExplanation() {
-        dialogHelper.newTransparentDialog(R.string.enrollment_process_explanation_title,
+        dialogHelper.showNewTransparentDialog(R.string.enrollment_process_explanation_title,
                 R.string.enrollment_process_explanation_message,
                 R.string.dialog_button_continue,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        presenter.promptForProcessExplanationAccepted();
-                    }
-                }, new Runnable() {
-                    @Override
-                    public void run() {
-                        presenter.promptForProcessExplanationRejected();
-                    }
-                }).show();
+                presenter::promptForProcessExplanationAccepted,
+                presenter::promptForProcessExplanationRejected);
     }
 
     @Override
     public void promptToTurn90Degrees() {
-        dialogHelper.newTransparentDialog(R.string.enrollment_process_turn90degrees_title,
+        dialogHelper.showNewTransparentDialog(R.string.enrollment_process_turn90degrees_title,
                 R.string.enrollment_process_turn90degrees_message,
                 R.string.dialog_button_continue,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        presenter.promptToTurn90DegreesAccepted();
-                    }
-                }, new Runnable() {
-                    @Override
-                    public void run() {
-                        presenter.promptToTurn90DegreesRejected();
-                    }
-                }).show();
+                presenter::promptToTurn90DegreesAccepted,
+                presenter::promptToTurn90DegreesRejected);
     }
 
     @Override
@@ -238,6 +289,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     @Override
     public void hideMovementIndicator() {
         binding.headOverlay.hide();
+        binding.headOverlay.reset();
     }
 
     @Override
@@ -335,6 +387,11 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
         binding.fullscreenMessage.setVisibility(View.INVISIBLE);
     }
 
+    @VisibleForTesting
+    public boolean isFullScreenMessageShown() {
+        return binding.fullscreenMessage.getVisibility() == View.VISIBLE;
+    }
+
     @Override
     public void navigateBack(boolean success) {
         Activity activity = getActivity();
@@ -393,12 +450,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     }
 
     private void showDialogAndNavigateBack(@StringRes int title, @StringRes int message, @DrawableRes int icon) {
-        dialogHelper.newDialog(title, message, android.R.string.ok, icon, new Runnable() {
-            @Override
-            public void run() {
-                navigateBack(false);
-            }
-        }).show();
+        dialogHelper.showNewDialog(title, message, android.R.string.ok, icon, () -> navigateBack(false));
     }
 
     @Override
@@ -437,12 +489,9 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
 
     @Override
     public void stopPreview() {
-        withAcquireMutex(new Runnable() {
-            @Override
-            public void run() {
-                cleanup();
-                cameraOpenCloseMutex.release();
-            }
+        withAcquireMutex(() -> {
+            cleanup();
+            cameraOpenCloseMutex.release();
         });
     }
 
@@ -450,52 +499,44 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
      * opens the camera and connects the camera to the preview when the camera is ready
      */
     private void openCameraAndConnectPreview() {
-        openCamera(new Runnable() {
-            @Override
-            public void run() {
-                connectPreview();
-            }
-        });
+        openCamera(this::connectPreview);
     }
 
 
     /**
      * does open the camera and runs the callback function as soon as the camera is ready
      */
+    @SuppressLint("MissingPermission")
     private void openCamera(@NonNull final Runnable onCameraOpened) {
-        withAcquireMutex(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    //noinspection MissingPermission (presenters responsiblity)
-                    cameraHelper.openFrontFacingCamera(new CameraDevice.StateCallback() {
-                        @Override
-                        public void onOpened(@NonNull CameraDevice camera) {
-                            openCamera = camera;
-                            cameraOpenCloseMutex.release();
-                            onCameraOpened.run();
-                        }
+        withAcquireMutex(() -> {
+            try {
+                cameraHelper.openFrontFacingCamera(new CameraDevice.StateCallback() {
+                    @Override
+                    public void onOpened(@NonNull CameraDevice camera) {
+                        openCamera = camera;
+                        cameraOpenCloseMutex.release();
+                        onCameraOpened.run();
+                    }
 
-                        @Override
-                        public void onDisconnected(@NonNull CameraDevice camera) {
-                            cleanup();
-                            cameraOpenCloseMutex.release();
-                            logErrorAndFinish("camera %s disconnected", camera.getId());
-                        }
+                    @Override
+                    public void onDisconnected(@NonNull CameraDevice camera) {
+                        cleanup();
+                        cameraOpenCloseMutex.release();
+                        logErrorAndFinish("camera %s disconnected", camera.getId());
+                    }
 
-                        @Override
-                        public void onError(@NonNull CameraDevice camera, int error) {
-                            cleanup();
-                            cameraOpenCloseMutex.release();
-                            logErrorAndFinish("error %d for camera %s occurred", error, camera.getId());
-                        }
-                    });
-                } catch (CameraException e) {
-                    // It is always import to free up the camera!
-                    // Sticking with the acquired mutex does not matter because the app  will quit anyway.
-                    cleanup();
-                    logErrorAndFinish("openCamera failed: %s", e.getMessage());
-                }
+                    @Override
+                    public void onError(@NonNull CameraDevice camera, int error) {
+                        cleanup();
+                        cameraOpenCloseMutex.release();
+                        logErrorAndFinish("error %d for camera %s occurred", error, camera.getId());
+                    }
+                });
+            } catch (CameraException e) {
+                // It is always import to free up the camera!
+                // Sticking with the acquired mutex does not matter because the app  will quit anyway.
+                cleanup();
+                logErrorAndFinish("openCamera failed: %s", e.getMessage());
             }
         });
     }
@@ -507,13 +548,8 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
         try {
             setupPreviewSizeAndImageReader();
             cameraHelper.startCameraPreview(openCamera, binding.preview, previewSize, getDeviceOrientation(),
-                    getRelativeDisplayRotation(), imageReader, new Consumer<CameraCaptureSession>() {
-                        @Override
-                        public void accept(CameraCaptureSession cameraCaptureSession) {
-                            openPreviewSession = cameraCaptureSession;
-                        }
-                    });
-        } catch (CameraException e) {
+                    getRelativeDisplayRotation(), imageReader, cameraCaptureSession -> openPreviewSession = cameraCaptureSession);
+        } catch (CameraException | IllegalStateException e) {
             cleanup();
             logErrorAndFinish("connectPreview failed: %s", e.getMessage());
         }
@@ -530,20 +566,20 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
         if (imageReader == null) {
             int maxImages = 2;  // should be at least 2 according to ImageReader.acquireLatestImage() documentation
             imageReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, maxImages);
-            imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-                @Override
-                public void onImageAvailable(ImageReader reader) {
-                    Image img = reader.acquireLatestImage();
-                    if (img != null) {
+            imageReader.setOnImageAvailableListener(reader -> {
+                Image img = reader.acquireLatestImage();
+                if (img != null) {
 
-                        // Make a in memory copy of the image to close the image from the reader as soon as possible.
-                        // This helps the thread running the preview staying up to date.
-                        IntensityPlane imgCopy = IntensityPlane.extract(img);
-                        img.close();
+                    // Make a in memory copy of the image to close the image from the reader as soon as possible.
+                    // This helps the thread running the preview staying up to date.
+                    IntensityPlane imgCopy = IntensityPlane.extract(img);
+                    img.close();
 
+                    try {
                         int imageRotation = cameraHelper.getImageRotation(openCamera, getRelativeDisplayRotation());
-
                         presenter.onImageCaptured(imgCopy, imageRotation);
+                    } catch (NullPointerException e) {
+                        // Fragment is no longer attached to Activity -> no need to process the image anymore
                     }
                 }
             }, null);
@@ -604,13 +640,14 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
      */
     @ConfigurationOrientation
     private int getDeviceOrientation() {
-        //noinspection WrongConstant (IntDef annotations are missing on API level 24)
         return getResources().getConfiguration().orientation;
     }
 
     /**
      * Does return the rotation of the device relative to the native orientation which is usually portrait for phones and landscape
      * for tablets.
+     *
+     * @throws NullPointerException if Fragment is no longer attached to an Activity
      */
     @SurfaceRotation
     private int getRelativeDisplayRotation() {

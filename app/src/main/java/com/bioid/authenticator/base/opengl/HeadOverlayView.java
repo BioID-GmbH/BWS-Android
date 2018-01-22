@@ -36,9 +36,13 @@ public interface HeadOverlayView {
 
     /**
      * Does hide the 3D head.
-     * By making the head invisible its state is reset which does mean the 3D head does look straight ahead.
      */
     void hide();
+
+    /**
+     * Does reset the view state which means the 3D head looks straight ahead.
+     */
+    void reset();
 
     /**
      * Starts an animation to let the head look in the specified direction.

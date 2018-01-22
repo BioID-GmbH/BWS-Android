@@ -166,9 +166,11 @@ public class VerificationPresenterTest {
     @Test
     public void startBiometricOperation_tokenIsFetchedAndSet() throws Exception {
         presenter.setBwsToken(null);
+        presenter.setFailedOperations(1);
         presenter.startBiometricOperation();
 
         assertThat(presenter.getBwsToken(), is(VERIFICATION_TOKEN));
+        assertThat(presenter.getFailedOperations(), is(0));
     }
 
     @Test

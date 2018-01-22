@@ -21,6 +21,7 @@ public abstract class BwsToken {
     @NonNull
     private final String token;
     private final int task;
+    private final int traits;
     private final long expirationTime;
     @Nullable
     final MovementDirection[][] challenges;
@@ -36,6 +37,7 @@ public abstract class BwsToken {
 
         JSONObject claims = jwtParser.getPayload(token);
         this.task = extractTask(claims);
+        this.traits = extractTraits(claims);
         this.expirationTime = extractExpirationTime(claims);
         this.challenges = extractChallenges(claims);
     }
@@ -45,6 +47,14 @@ public abstract class BwsToken {
             return claims.getInt("task");
         } catch (JSONException e) {
             throw new IllegalArgumentException("JWT is missing 'task' claim");
+        }
+    }
+
+    private int extractTraits(@NonNull JSONObject claims) {
+        try {
+            return claims.getInt("traits");
+        } catch (JSONException e) {
+            throw new IllegalArgumentException("JWT is missing 'traits' claim");
         }
     }
 
@@ -116,6 +126,22 @@ public abstract class BwsToken {
         return (task & TaskFlag.Identify.value) == TaskFlag.Identify.value;
     }
 
+    public boolean hasFaceTrait() {
+        return hasTrait(TraitsFlag.Face);
+    }
+
+    public boolean hasPeriocularTrait() {
+        return hasTrait(TraitsFlag.Periocular);
+    }
+
+    public boolean hasVoiceTrait() {
+        return hasTrait(TraitsFlag.Voice);
+    }
+
+    private boolean hasTrait(@NonNull TraitsFlag trait) {
+        return (traits & trait.value) == trait.value;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -146,6 +172,19 @@ public abstract class BwsToken {
         final int value;
 
         TaskFlag(int value) {
+            this.value = value;
+        }
+    }
+
+    private enum TraitsFlag {
+
+        Face(0x1),
+        Periocular(0x2),
+        Voice(0x4);
+
+        final int value;
+
+        TraitsFlag(int value) {
             this.value = value;
         }
     }
