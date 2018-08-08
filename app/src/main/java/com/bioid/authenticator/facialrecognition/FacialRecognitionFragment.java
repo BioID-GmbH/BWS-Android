@@ -3,7 +3,6 @@ package com.bioid.authenticator.facialrecognition;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
@@ -21,7 +20,7 @@ import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 import android.support.annotation.VisibleForTesting;
-import android.support.v13.app.FragmentCompat;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.util.Size;
 import android.view.LayoutInflater;
@@ -34,7 +33,7 @@ import com.bioid.authenticator.base.annotations.ConfigurationOrientation;
 import com.bioid.authenticator.base.annotations.SurfaceRotation;
 import com.bioid.authenticator.base.camera.CameraException;
 import com.bioid.authenticator.base.camera.CameraHelper;
-import com.bioid.authenticator.base.image.IntensityPlane;
+import com.bioid.authenticator.base.image.Yuv420Image;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.bioid.authenticator.base.network.bioid.webservice.MovementDirection;
@@ -131,7 +130,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
             throw new IllegalStateException("Task is null or an invalid string");
         }
 
-        Context ctx = getContext().getApplicationContext();
+        Context ctx = requireContext().getApplicationContext();
 
         switch (task) {
             case Verification:
@@ -151,16 +150,14 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
 
         setRetainInstance(true);  // does retain the presenter to preserve state across configuration changes
 
-        // as mentioned in "The Busy Coder's Guide to Android" it is important to use the app context to get the camera service,
-        // because of a memory leak in Android 5.0 (fixed in 5.1)
-        CameraManager cameraManager = (CameraManager) getActivity().getApplicationContext().getSystemService(Context.CAMERA_SERVICE);
+        CameraManager cameraManager = (CameraManager) requireContext().getSystemService(Context.CAMERA_SERVICE);
 
         dialogHelper = new DialogHelper(getActivity());
         cameraHelper = new CameraHelper(cameraManager);
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_facial_recognition, container, false);
 
         return binding.getRoot();
@@ -170,7 +167,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     public void onResume() {
         super.onResume();
 
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);  // do not rotate during biometric operation
+        requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);  // do not rotate during biometric operation
 
         presenter.onResume();
     }
@@ -179,7 +176,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     public void onPause() {
         super.onPause();
 
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 
         presenter.onPause();
     }
@@ -187,7 +184,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
     @Override
     public void requestCameraPermission() {
 
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             // Camera permission is already granted.
             // Threw Play Store installation before Android 6.0 or threw user approval during a previous app usage.
             presenter.onCameraPermissionGranted();
@@ -197,7 +194,7 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
         // Camera permission is not yet granted, request it now.
         // Because it should be obvious for a facial recognition app to require camera access "shouldShowRequestPermissionRationale()"
         // is not queried.
-        FragmentCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CODE_CAMERA_PERMISSION);
+        requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CODE_CAMERA_PERMISSION);
     }
 
     @Override
@@ -569,17 +566,18 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
             imageReader.setOnImageAvailableListener(reader -> {
                 Image img = reader.acquireLatestImage();
                 if (img != null) {
-
-                    // Make a in memory copy of the image to close the image from the reader as soon as possible.
-                    // This helps the thread running the preview staying up to date.
-                    IntensityPlane imgCopy = IntensityPlane.extract(img);
-                    img.close();
-
                     try {
                         int imageRotation = cameraHelper.getImageRotation(openCamera, getRelativeDisplayRotation());
-                        presenter.onImageCaptured(imgCopy, imageRotation);
+                        Context ctx = requireContext().getApplicationContext();
+                        // Make a in memory copy of the image to close the image from the reader as soon as possible.
+                        // This helps the thread running the preview staying up to date.
+                        Yuv420Image imgCopy = Yuv420Image.copyFrom(img, imageRotation, ctx);
+
+                        presenter.onImageCaptured(imgCopy);
                     } catch (NullPointerException e) {
                         // Fragment is no longer attached to Activity -> no need to process the image anymore
+                    } finally {
+                        img.close();
                     }
                 }
             }, null);
@@ -651,6 +649,6 @@ public final class FacialRecognitionFragment extends Fragment implements FacialR
      */
     @SurfaceRotation
     private int getRelativeDisplayRotation() {
-        return getActivity().getWindowManager().getDefaultDisplay().getRotation();
+        return requireActivity().getWindowManager().getDefaultDisplay().getRotation();
     }
 }

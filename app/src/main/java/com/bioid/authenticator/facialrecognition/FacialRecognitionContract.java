@@ -2,8 +2,7 @@ package com.bioid.authenticator.facialrecognition;
 
 import android.support.annotation.NonNull;
 
-import com.bioid.authenticator.base.annotations.Rotation;
-import com.bioid.authenticator.base.image.IntensityPlane;
+import com.bioid.authenticator.base.image.Yuv420Image;
 import com.bioid.authenticator.base.mvp.LifecycleAware;
 import com.bioid.authenticator.base.network.bioid.webservice.MovementDirection;
 
@@ -224,10 +223,9 @@ public interface FacialRecognitionContract {
         /**
          * Callback which is called if an image was captured.
          *
-         * @param img         Y-Plane of a YUV_420_888 image
-         * @param imgRotation the rotation of the image
+         * @param img YUV_420_888 image
          */
-        void onImageCaptured(@NonNull IntensityPlane img, @Rotation int imgRotation);
+        void onImageCaptured(@NonNull Yuv420Image img);
 
     }
 }

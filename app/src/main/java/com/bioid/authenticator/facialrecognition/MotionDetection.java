@@ -1,10 +1,11 @@
 package com.bioid.authenticator.facialrecognition;
 
-import android.graphics.Bitmap;
+import android.support.annotation.AnyThread;
 import android.support.annotation.NonNull;
+import android.support.annotation.WorkerThread;
 
 import com.bioid.authenticator.base.image.GrayscaleImage;
-import com.bioid.authenticator.base.image.ImageFormatConverter;
+import com.bioid.authenticator.base.image.Yuv420Image;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 
@@ -22,8 +23,6 @@ public class MotionDetection {
 
     private final LoggingHelper log = LoggingHelperFactory.create(MotionDetection.class);
 
-    private final ImageFormatConverter imageFormatConverter;
-
     // Template for motion detection
     private int templateWidth;
     private int templateHeight;
@@ -33,20 +32,17 @@ public class MotionDetection {
     private int resizeCenterY;
     private int[] templateBuffer;
 
-    MotionDetection() {
-        this.imageFormatConverter = new ImageFormatConverter();
-    }
-
     /**
      * Cut out the template that is used by the motion detection.
      *
-     * @param first the image which is used for the template matching.
+     * @param first the image which is used for the template matching
      */
-    void createTemplate(@NonNull Bitmap first) {
+    @WorkerThread
+    void createTemplate(@NonNull Yuv420Image first) {
 
         String stopwatchSessionId = log.startStopwatch("creating template for motion detection");
 
-        GrayscaleImage resizedGrayImage = resizeImageForMotionDetection(first);
+        GrayscaleImage resizedGrayImage = first.asDownscaledGrayscaleImage();
 
         resizeCenterX = resizedGrayImage.width / 2;
         resizeCenterY = resizedGrayImage.height / 2;
@@ -81,6 +77,7 @@ public class MotionDetection {
     /**
      * Does remove the currently stored template.
      */
+    @AnyThread
     void resetTemplate() {
         templateWidth = 0;
         templateHeight = 0;
@@ -98,16 +95,17 @@ public class MotionDetection {
      *
      * @param current the image which might contain a change in position as compared with the first image
      * @return true if motion was detected
-     * @throws IllegalStateException if {@link #createTemplate(Bitmap)} was not called
+     * @throws IllegalStateException if {@link #createTemplate(Yuv420Image)} was not called
      */
-    boolean detect(@NonNull Bitmap current) {
+    @WorkerThread
+    boolean detect(@NonNull Yuv420Image current) {
         if (templateBuffer == null) {
             throw new IllegalStateException("missing template");
         }
 
         String stopwatchSessionId = log.startStopwatch("motion detection algorithm");
 
-        GrayscaleImage resizedGrayImage = resizeImageForMotionDetection(current);
+        GrayscaleImage resizedGrayImage = current.asDownscaledGrayscaleImage();
 
         int bestHitX = 0;
         int bestHitY = 0;
@@ -173,26 +171,5 @@ public class MotionDetection {
 
         log.stopStopwatch(stopwatchSessionId);
         return triggered;
-    }
-
-    private GrayscaleImage resizeImageForMotionDetection(@NonNull Bitmap bitmap) {
-
-        int resizeWidth;
-        int resizeHeight;
-
-        if (bitmap.getWidth() > bitmap.getHeight()) {
-            // Landscape mode
-            resizeHeight = 96;
-            // Calculate new width according to aspect ratio of original image
-            resizeWidth = bitmap.getWidth() * resizeHeight / bitmap.getHeight();
-        } else {
-            // Portrait mode
-            resizeWidth = 96;
-            // Calculate new height according to aspect ratio of original image
-            resizeHeight = bitmap.getHeight() * resizeWidth / bitmap.getWidth();
-        }
-
-        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, resizeWidth, resizeHeight, true);
-        return imageFormatConverter.bitmapToGrayscaleImage(resizedBitmap);
     }
 }

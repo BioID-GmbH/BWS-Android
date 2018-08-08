@@ -1,12 +1,12 @@
 package com.bioid.authenticator.facialrecognition.enrollment;
 
 import android.app.Fragment;
-import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 
 import com.bioid.authenticator.R;
@@ -50,7 +50,7 @@ final public class EnrollmentActivity extends AppCompatActivity {
         if (facialRecognitionFragment == null) {
             // fragment is not retained
             FacialRecognitionFragment fragment = FacialRecognitionFragment.newInstanceForEnrollment(tokenProvider);
-            FragmentTransaction transaction = getFragmentManager().beginTransaction();
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
             transaction.add(R.id.frame_layout, fragment, TAG_FACIAL_RECOGNITION_FRAGMENT);
             transaction.commit();
         }

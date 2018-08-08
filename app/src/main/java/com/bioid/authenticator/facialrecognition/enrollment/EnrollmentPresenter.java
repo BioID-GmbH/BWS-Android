@@ -34,7 +34,7 @@ public class EnrollmentPresenter extends FacialRecognitionBasePresenter<Enrollme
                         EnrollmentTokenProvider tokenProvider, BioIdWebserviceClient bioIdWebserviceClient) {
 
         // using null dependencies makes sure the base class functionality won't be tested
-        super(ctx, log, view, backgroundHandler, null, null, null, null, null);
+        super(ctx, log, view, backgroundHandler, null, null, null);
 
         this.tokenProvider = tokenProvider;
         this.bioIdWebserviceClient = bioIdWebserviceClient;

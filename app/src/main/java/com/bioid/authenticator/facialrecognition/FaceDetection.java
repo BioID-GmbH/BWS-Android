@@ -2,9 +2,12 @@ package com.bioid.authenticator.facialrecognition;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.support.annotation.AnyThread;
 import android.support.annotation.NonNull;
+import android.support.annotation.WorkerThread;
 import android.util.SparseArray;
 
+import com.bioid.authenticator.base.image.Yuv420Image;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.google.android.gms.vision.Frame;
@@ -35,6 +38,7 @@ class FaceDetection {
      * <p>
      * If this method returns false all other methods will throw a {@link NotOperationalException}.
      */
+    @AnyThread
     boolean isOperational() {
         return detector.isOperational();
     }
@@ -42,17 +46,18 @@ class FaceDetection {
     /**
      * Can detect if the image contains a human face.
      *
-     * @param bitmap image which might contain a human face
+     * @param img which might contain a human face
      * @return true if the image contains at least one prominent face
      * @throws NotOperationalException if the binaries needed for Google Mobile Vision API are not downloaded yet
      */
-    boolean containsFace(@NonNull Bitmap bitmap) {
+    @WorkerThread
+    boolean containsFace(@NonNull Yuv420Image img) {
         if (!detector.isOperational()) {
             throw new NotOperationalException();
         }
 
         log.startStopwatch(STOPWATCH_SESSION_ID);
-        int faceCount = getFaceCount(bitmap);
+        int faceCount = getFaceCount(img.asBitmap());
         log.stopStopwatch(STOPWATCH_SESSION_ID);
 
         return faceCount > 0;

@@ -1,13 +1,8 @@
 package com.bioid.authenticator.facialrecognition;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 
-import com.bioid.authenticator.base.annotations.Rotation;
-import com.bioid.authenticator.base.image.GrayscaleImage;
-import com.bioid.authenticator.base.image.ImageFormatConverter;
-import com.bioid.authenticator.base.image.ImageTransformer;
-import com.bioid.authenticator.base.image.IntensityPlane;
+import com.bioid.authenticator.base.image.Yuv420Image;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.network.NoConnectionException;
 import com.bioid.authenticator.base.network.ServerErrorException;
@@ -58,8 +53,6 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class FacialRecognitionBasePresenterTest {
 
-    @Rotation
-    private static final int IMAGE_ROTATION = 180;
     private static final VerificationToken BWS_TOKEN = Mocks.verificationToken();
     private static final int INDEX = 4;
     private static final MovementDirection CURRENT_DIRECTION = MovementDirection.any;
@@ -78,23 +71,13 @@ public class FacialRecognitionBasePresenterTest {
     @Spy
     private SynchronousBackgroundHandler backgroundHandler;
     @Mock
-    private ImageFormatConverter imageFormatConverter;
-    @Mock
-    private ImageTransformer imageTransformer;
-    @Mock
     private FaceDetection faceDetection;
     @Mock
     private MotionDetection motionDetection;
     @Mock
     private BioIdWebserviceClient bioIdWebserviceClient;
     @Mock
-    private IntensityPlane imageAsIntensityPlane;
-    @Mock
-    private GrayscaleImage imageAsGrayscale;
-    @Mock
-    private GrayscaleImage rotatedImageAsGrayscale;
-    @Mock
-    private Bitmap rotatedImageAsBitmap;
+    private Yuv420Image img;
 
     private FacialRecognitionBasePresenterForTest presenter;
 
@@ -108,11 +91,9 @@ public class FacialRecognitionBasePresenterTest {
         private boolean disableMotionTimeout = true;
 
         private FacialRecognitionBasePresenterForTest(Context ctx, LoggingHelper log, FacialRecognitionContract.View view,
-                                                      BackgroundHandler backgroundHandler, ImageFormatConverter imageFormatConverter,
-                                                      ImageTransformer imageTransformer, FaceDetection faceDetection,
+                                                      BackgroundHandler backgroundHandler, FaceDetection faceDetection,
                                                       MotionDetection motionDetection, BioIdWebserviceClient bioIdWebserviceClient) {
-            super(ctx, log, view, backgroundHandler, imageFormatConverter, imageTransformer, faceDetection, motionDetection,
-                    bioIdWebserviceClient);
+            super(ctx, log, view, backgroundHandler, faceDetection, motionDetection, bioIdWebserviceClient);
 
             this.bwsToken = BWS_TOKEN;
             this.currentDirection = CURRENT_DIRECTION;
@@ -173,13 +154,13 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Before
-    public void setUp() throws Exception {
-        presenter = new FacialRecognitionBasePresenterForTest(ctx, log, view, backgroundHandler, imageFormatConverter,
-                imageTransformer, faceDetection, motionDetection, bioIdWebserviceClient);
+    public void setUp() {
+        presenter = new FacialRecognitionBasePresenterForTest(ctx, log, view, backgroundHandler, faceDetection, motionDetection,
+                bioIdWebserviceClient);
     }
 
     @Test
-    public void onResume_ifPermissionStateIsUnknown_permissionWillBeRequested() throws Exception {
+    public void onResume_ifPermissionStateIsUnknown_permissionWillBeRequested() {
         presenter.onResume();
 
         verify(view).requestCameraPermission();
@@ -187,7 +168,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onResume_ifPermissionStateIsDenied_showCameraPermissionErrorAndNavigateBackWillBeCalled() throws Exception {
+    public void onResume_ifPermissionStateIsDenied_showCameraPermissionErrorAndNavigateBackWillBeCalled() {
         presenter.permissionState = PermissionState.PERMISSION_DENIED;
 
         presenter.onResume();
@@ -196,7 +177,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onResume_ifPermissionStateIsAnyOtherState_nothingWillHappen() throws Exception {
+    public void onResume_ifPermissionStateIsAnyOtherState_nothingWillHappen() {
         presenter.permissionState = PermissionState.REQUESTING_PERMISSION;
 
         presenter.onResume();
@@ -207,7 +188,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onPause_ifPermissionIsGranted_permissionStateIsResetToUnknown() throws Exception {
+    public void onPause_ifPermissionIsGranted_permissionStateIsResetToUnknown() {
         presenter.permissionState = PermissionState.PERMISSION_GRANTED;
 
         presenter.onPause();
@@ -216,56 +197,56 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onPause_biometricOperationResetWillBeApplied() throws Exception {
+    public void onPause_biometricOperationResetWillBeApplied() {
         presenter.onPause();
 
         assertBiometricOperationReset();
     }
 
     @Test
-    public void onPause_previewWillBeStopped() throws Exception {
+    public void onPause_previewWillBeStopped() {
         presenter.onPause();
 
         verify(view).stopPreview();
     }
 
     @Test
-    public void onCameraPermissionGranted_permissionStateIsSetToGranted() throws Exception {
+    public void onCameraPermissionGranted_permissionStateIsSetToGranted() {
         presenter.onCameraPermissionGranted();
 
         assertThat(presenter.permissionState, is(PermissionState.PERMISSION_GRANTED));
     }
 
     @Test
-    public void onCameraPermissionGranted_previewWillBeStarted() throws Exception {
+    public void onCameraPermissionGranted_previewWillBeStarted() {
         presenter.onCameraPermissionGranted();
 
         verify(view).startPreview();
     }
 
     @Test
-    public void onCameraPermissionGranted_startBiometricOperationWillBeCalled() throws Exception {
+    public void onCameraPermissionGranted_startBiometricOperationWillBeCalled() {
         presenter.onCameraPermissionGranted();
 
         assertThat(presenter.startBiometricOperationCalled, is(true));
     }
 
     @Test
-    public void onCameraPermissionDenied_permissionStateIsSetToDenied() throws Exception {
+    public void onCameraPermissionDenied_permissionStateIsSetToDenied() {
         presenter.onCameraPermissionDenied();
 
         assertThat(presenter.permissionState, is(PermissionState.PERMISSION_DENIED));
     }
 
     @Test
-    public void onCameraPermissionDenied_showCameraPermissionErrorAndNavigateBackWillBeCalled() throws Exception {
+    public void onCameraPermissionDenied_showCameraPermissionErrorAndNavigateBackWillBeCalled() {
         presenter.onCameraPermissionDenied();
 
         verify(view).showCameraPermissionErrorAndNavigateBack();
     }
 
     @Test
-    public void detectFace_ifFaceDetectionIsNotOperationalCallNoFaceDetected() throws Exception {
+    public void detectFace_ifFaceDetectionIsNotOperationalCallNoFaceDetected() {
         when(faceDetection.isOperational()).thenReturn(false);
 
         presenter.detectFace();
@@ -274,7 +255,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void detectFace_ifFaceDetectionIsNotOperationalNoTimeoutWillBeStarted() throws Exception {
+    public void detectFace_ifFaceDetectionIsNotOperationalNoTimeoutWillBeStarted() {
         when(faceDetection.isOperational()).thenReturn(false);
 
         presenter.detectFace();
@@ -283,7 +264,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void detectFace_findFaceInfoWillBeShown() throws Exception {
+    public void detectFace_findFaceInfoWillBeShown() {
         when(faceDetection.isOperational()).thenReturn(true);
 
         presenter.detectFace();
@@ -292,7 +273,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void detectFace_stateIsSetToWaitingForImageWithFace() throws Exception {
+    public void detectFace_stateIsSetToWaitingForImageWithFace() {
         when(faceDetection.isOperational()).thenReturn(true);
 
         presenter.detectFace();
@@ -301,7 +282,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForReferenceImage_taskIdForFaceTimeoutWillBeSet() throws Exception {
+    public void onImageCaptured_ifWaitingForReferenceImage_taskIdForFaceTimeoutWillBeSet() {
         when(faceDetection.isOperational()).thenReturn(true);
 
         presenter.detectFace();
@@ -310,7 +291,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void detectFace_ifFaceDetectionTimeoutOccursOnNoFaceDetectedWillBeCalled() throws Exception {
+    public void detectFace_ifFaceDetectionTimeoutOccursOnNoFaceDetectedWillBeCalled() {
         when(faceDetection.isOperational()).thenReturn(true);
         backgroundHandler.doNothingOnRunWithDelay();
         ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
@@ -326,7 +307,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void captureImagePair_movementInstructionsAreShown() throws Exception {
+    public void captureImagePair_movementInstructionsAreShown() {
         presenter.captureImagePair(INDEX, CURRENT_DIRECTION, DESTINATION_DIRECTION);
 
         verify(view).showMovementInfo(DESTINATION_DIRECTION);
@@ -334,131 +315,131 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void captureImagePair_nowWaitingForReferenceImage() throws Exception {
+    public void captureImagePair_nowWaitingForReferenceImage() {
         presenter.captureImagePair(INDEX, CURRENT_DIRECTION, DESTINATION_DIRECTION);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_REFERENCE_IMAGE));
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithFace_findFaceInfoMessageWillBeHidden() throws Exception {
-        when(faceDetection.containsFace(rotatedImageAsBitmap)).thenReturn(true);
+    public void onImageCaptured_ifWaitingForImageWithFace_findFaceInfoMessageWillBeHidden() {
+        when(faceDetection.containsFace(img)).thenReturn(true);
         mockStateWaitingForImageWithFace();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         verify(view).hideMessages();
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithFace_onFaceDetectedWillBeCalled() throws Exception {
-        when(faceDetection.containsFace(rotatedImageAsBitmap)).thenReturn(true);
+    public void onImageCaptured_ifWaitingForImageWithFace_onFaceDetectedWillBeCalled() {
+        when(faceDetection.containsFace(img)).thenReturn(true);
         mockStateWaitingForImageWithFace();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         assertThat(presenter.onFaceDetectedCalled, is(true));
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithFace_faceDetectionTimeoutIsCanceled() throws Exception {
-        when(faceDetection.containsFace(rotatedImageAsBitmap)).thenReturn(true);
+    public void onImageCaptured_ifWaitingForImageWithFace_faceDetectionTimeoutIsCanceled() {
+        when(faceDetection.containsFace(img)).thenReturn(true);
         mockStateWaitingForImageWithFace();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         verify(backgroundHandler).cancelScheduledTask(TASK_ID_FACE_TIMEOUT);
     }
 
     @Test
-    public void onImageCaptured_ifNoFaceWasDetected_stateIsResetToWaitingForImageWithFace() throws Exception {
-        when(faceDetection.containsFace(rotatedImageAsBitmap)).thenReturn(false);
+    public void onImageCaptured_ifNoFaceWasDetected_stateIsResetToWaitingForImageWithFace() {
+        when(faceDetection.containsFace(img)).thenReturn(false);
         mockStateWaitingForImageWithFace();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_IMAGE_WITH_FACE));
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForReferenceImage_motionDetectionTemplateWillBeCreated() throws Exception {
+    public void onImageCaptured_ifWaitingForReferenceImage_motionDetectionTemplateWillBeCreated() {
         mockStateWaitingForReferenceImage();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
-        verify(motionDetection).createTemplate(rotatedImageAsBitmap);
+        verify(motionDetection).createTemplate(img);
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForReferenceImage_stateIsSetToWaitingForImageWithMotion() throws Exception {
+    public void onImageCaptured_ifWaitingForReferenceImage_stateIsSetToWaitingForImageWithMotion() {
         mockStateWaitingForReferenceImage();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION));
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForReferenceImage_imageWillBeUploaded() throws Exception {
+    public void onImageCaptured_ifWaitingForReferenceImage_imageWillBeUploaded() {
         mockStateWaitingForReferenceImage();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
-        verify(bioIdWebserviceClient).uploadImage(rotatedImageAsBitmap, BWS_TOKEN, CURRENT_DIRECTION, INDEX);
+        verify(bioIdWebserviceClient).uploadImage(img, BWS_TOKEN, CURRENT_DIRECTION, INDEX);
         assertThat(presenter.onUploadSuccessfulCalled, is(true));
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithMotion_stateIsSetToOther() throws Exception {
+    public void onImageCaptured_ifWaitingForImageWithMotion_stateIsSetToOther() {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.OTHER));
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithMotion_motionDetectionTimeoutIsCanceled() throws Exception {
+    public void onImageCaptured_ifWaitingForImageWithMotion_motionDetectionTimeoutIsCanceled() {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         verify(backgroundHandler).cancelScheduledTask(TASK_ID_MOTION_TIMEOUT);
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithMotion_movementInstructionTextWillBeHidden() throws Exception {
+    public void onImageCaptured_ifWaitingForImageWithMotion_movementInstructionTextWillBeHidden() {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         verify(view, times(2)).hideMessages();  // counting two invocation because the uploading images message will also be hidden
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithMotion_onImageWithMotionProcessedWasCalled() throws Exception {
+    public void onImageCaptured_ifWaitingForImageWithMotion_onImageWithMotionProcessedWasCalled() {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         assertThat(presenter.onImageWithMotionProcessedCalled, is(true));
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithMotion_imageWillBeUploaded() throws Exception {
+    public void onImageCaptured_ifWaitingForImageWithMotion_imageWillBeUploaded() {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
-        verify(bioIdWebserviceClient).uploadImage(rotatedImageAsBitmap, BWS_TOKEN, DESTINATION_DIRECTION, INDEX + 1);
+        verify(bioIdWebserviceClient).uploadImage(img, BWS_TOKEN, DESTINATION_DIRECTION, INDEX + 1);
         assertThat(presenter.onUploadSuccessfulCalled, is(true));
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithMotion_uploadingInfoWillBeShownDuringUpload() throws Exception {
+    public void onImageCaptured_ifWaitingForImageWithMotion_uploadingInfoWillBeShownDuringUpload() {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         InOrder inOrder = inOrder(view);
         inOrder.verify(view).showUploadingImagesInfo();
@@ -466,10 +447,10 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onImageCaptured_ifWaitingForImageWithMotion_loadingIndicatorWillBeShownDuringUpload() throws Exception {
+    public void onImageCaptured_ifWaitingForImageWithMotion_loadingIndicatorWillBeShownDuringUpload() {
         mockStateWaitingForImageWithMotion();
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         InOrder inOrder = inOrder(view);
         inOrder.verify(view).showLoadingIndicator();
@@ -477,39 +458,39 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onImageCaptured_ifNoMotionWasDetected_stateIsSetToWaitingForImageWithMotion() throws Exception {
+    public void onImageCaptured_ifNoMotionWasDetected_stateIsSetToWaitingForImageWithMotion() {
         mockStateWaitingForImageWithMotion();
-        when(motionDetection.detect(rotatedImageAsBitmap)).thenReturn(false);
+        when(motionDetection.detect(img)).thenReturn(false);
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         assertThat(presenter.imageDetectionState, is(ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION));
-        verify(bioIdWebserviceClient, never()).uploadImage(any(Bitmap.class), any(BwsToken.class),
+        verify(bioIdWebserviceClient, never()).uploadImage(any(Yuv420Image.class), any(BwsToken.class),
                 any(MovementDirection.class), anyInt());
     }
 
     @Test
-    public void onImageCaptured_ifImageUploadFailed_failedUploadCounterDoesIncrement() throws Exception {
+    public void onImageCaptured_ifImageUploadFailed_failedUploadCounterDoesIncrement() {
         presenter.failedUploads = 0;
         mockStateWaitingForReferenceImage();
         doThrow(new NotRecognizedException()).when(bioIdWebserviceClient)
-                .uploadImage(any(Bitmap.class), any(BwsToken.class), any(MovementDirection.class), anyInt());
+                .uploadImage(any(Yuv420Image.class), any(BwsToken.class), any(MovementDirection.class), anyInt());
 
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+        presenter.onImageCaptured(img);
 
         assertThat(presenter.failedUploads, is(1));
     }
 
     @Test
-    public void onImageCaptured_ifStateIsOther_doNothing() throws Exception {
-        presenter.onImageCaptured(imageAsIntensityPlane, IMAGE_ROTATION);
+    public void onImageCaptured_ifStateIsOther_doNothing() {
+        presenter.onImageCaptured(img);
 
-        verify(bioIdWebserviceClient, never()).uploadImage(any(Bitmap.class), any(BwsToken.class),
+        verify(bioIdWebserviceClient, never()).uploadImage(any(Yuv420Image.class), any(BwsToken.class),
                 any(MovementDirection.class), anyInt());
     }
 
     @Test
-    public void setupMotionTimeout_taskIdForMotionTimeoutWillBeSet() throws Exception {
+    public void setupMotionTimeout_taskIdForMotionTimeoutWillBeSet() {
         presenter.disableMotionTimeout = false;
         backgroundHandler.doNothingOnRunWithDelay();
 
@@ -519,7 +500,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void setupMotionTimeout_ifMotionDetectionTimeoutOccurs_showsMotionDetectionWarning() throws Exception {
+    public void setupMotionTimeout_ifMotionDetectionTimeoutOccurs_showsMotionDetectionWarning() {
         presenter.disableMotionTimeout = false;
         mockStateWaitingForReferenceImage();
 
@@ -531,7 +512,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onUploadFailed_ifThreeUploadsDidFail_biometricOperationWillBeAborted() throws Exception {
+    public void onUploadFailed_ifThreeUploadsDidFail_biometricOperationWillBeAborted() {
         presenter.failedUploads = 3;
 
         presenter.onUploadFailed(new NotRecognizedException());
@@ -542,8 +523,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onUploadFailed_ifThreeOrLessUploadsDidFailAndTheReferenceImageUploadWasSuccessful_decreaseTheCounter()
-            throws Exception {
+    public void onUploadFailed_ifThreeOrLessUploadsDidFailAndTheReferenceImageUploadWasSuccessful_decreaseTheCounter() {
         presenter.failedOperations = 1;
         presenter.successfulUploads = 3;
 
@@ -553,14 +533,14 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void onUploadFailed_warningIsShown() throws Exception {
+    public void onUploadFailed_warningIsShown() {
         presenter.onUploadFailed(new NotRecognizedException());
 
         verify(view).showNotRecognizedWarning();  // exception is used as an example, showWarningOrError() is tested separately
     }
 
     @Test
-    public void onUploadFailed_ifLessThanThreeUploadsDidFail_retryCapturingImagePair() throws Exception {
+    public void onUploadFailed_ifLessThanThreeUploadsDidFail_retryCapturingImagePair() {
         presenter.index = 42;
         presenter.currentDirection = MovementDirection.right;
         presenter.destinationDirection = MovementDirection.up;
@@ -575,7 +555,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void resetCaptureImagePair_stateResetIsApplied() throws Exception {
+    public void resetCaptureImagePair_stateResetIsApplied() {
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION;
 
         presenter.resetCaptureImagePair();
@@ -584,7 +564,7 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void resetBiometricOperation_stateResetIsApplied() throws Exception {
+    public void resetBiometricOperation_stateResetIsApplied() {
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION;
 
         presenter.resetBiometricOperation();
@@ -593,96 +573,96 @@ public class FacialRecognitionBasePresenterTest {
     }
 
     @Test
-    public void showWarningOrError_showNotRecognizedWarningIsCalled() throws Exception {
+    public void showWarningOrError_showNotRecognizedWarningIsCalled() {
         presenter.showWarningOrError(new NotRecognizedException());
 
         verify(view).showNotRecognizedWarning();
     }
 
     @Test
-    public void showWarningOrError_showChallengeResponseExceptionIsCalled() throws Exception {
+    public void showWarningOrError_showChallengeResponseExceptionIsCalled() {
         presenter.showWarningOrError(new ChallengeResponseException());
 
         verify(view).showChallengeResponseWarning();
     }
 
     @Test
-    public void showWarningOrError_showLiveDetectionWarningIsCalled() throws Exception {
+    public void showWarningOrError_showLiveDetectionWarningIsCalled() {
         presenter.showWarningOrError(new LiveDetectionException());
 
         verify(view).showLiveDetectionWarning();
     }
 
     @Test
-    public void showWarningOrError_showNoFaceFoundWarningIsCalled() throws Exception {
+    public void showWarningOrError_showNoFaceFoundWarningIsCalled() {
         presenter.showWarningOrError(new NoFaceFoundException());
 
         verify(view).showNoFaceFoundWarning();
     }
 
     @Test
-    public void showWarningOrError_showMultipleFacesFoundWarningIsCalled() throws Exception {
+    public void showWarningOrError_showMultipleFacesFoundWarningIsCalled() {
         presenter.showWarningOrError(new MultipleFacesFoundException());
 
         verify(view).showMultipleFacesFoundWarning();
     }
 
     @Test
-    public void showWarningOrError_showNoSamplesWarningIsCalled() throws Exception {
+    public void showWarningOrError_showNoSamplesWarningIsCalled() {
         presenter.showWarningOrError(new NoSamplesException());
 
         verify(view).showNoSamplesWarning();
     }
 
     @Test
-    public void showWarningOrError_showNoConnectionErrorIsCalled() throws Exception {
+    public void showWarningOrError_showNoConnectionErrorIsCalled() {
         presenter.showWarningOrError(new NoConnectionException(null));
 
         verify(view).showNoConnectionErrorAndNavigateBack();
     }
 
     @Test
-    public void showWarningOrError_showServerErrorErrorIsCalled() throws Exception {
+    public void showWarningOrError_showServerErrorErrorIsCalled() {
         presenter.showWarningOrError(new ServerErrorException());
 
         verify(view).showServerErrorAndNavigateBack();
     }
 
     @Test
-    public void showWarningOrError_showDeviceNotRegisteredErrorIsCalled() throws Exception {
+    public void showWarningOrError_showDeviceNotRegisteredErrorIsCalled() {
         presenter.showWarningOrError(new DeviceNotRegisteredException());
 
         verify(view).showDeviceNotRegisteredErrorAndNavigateBack();
     }
 
     @Test
-    public void showWarningOrError_showWrongCredentialsErrorIsCalled() throws Exception {
+    public void showWarningOrError_showWrongCredentialsErrorIsCalled() {
         presenter.showWarningOrError(new WrongCredentialsException());
 
         verify(view).showWrongCredentialsErrorAndNavigateBack();
     }
 
     @Test
-    public void showWarningOrError_showNoEnrollmentErrorIsCalled() throws Exception {
+    public void showWarningOrError_showNoEnrollmentErrorIsCalled() {
         presenter.showWarningOrError(new NoEnrollmentException());
 
         verify(view).showNoEnrollmentErrorAndNavigateBack();
     }
 
     @Test(expected = TechnicalException.class)
-    public void showWarningOrError_unhandledExceptionsWillBeRethrown() throws Exception {
+    public void showWarningOrError_unhandledExceptionsWillBeRethrown() {
         presenter.showWarningOrError(new TechnicalException(""));
     }
 
     @Test
-    public void navigateBackWithDelay_doesNavigateBackWithSuccess() throws Exception {
+    public void navigateBackWithDelay_doesNavigateBackWithSuccess() {
         presenter.navigateBackWithDelay(true);
 
         verify(view).navigateBack(true);
     }
 
     @Test
-    public void navigateBackWithDelay_doesNavigateBackWithoutSuccess() throws Exception {
+    public void navigateBackWithDelay_doesNavigateBackWithoutSuccess() {
         presenter.navigateBackWithDelay(false);
 
         verify(view).navigateBack(false);
@@ -691,29 +671,17 @@ public class FacialRecognitionBasePresenterTest {
     private void mockStateWaitingForImageWithFace() {
         presenter.index = INDEX;
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_FACE;
-
-        when(imageFormatConverter.intensityPlaneToGrayscaleImage(imageAsIntensityPlane)).thenReturn(imageAsGrayscale);
-        when(imageTransformer.rotate(imageAsGrayscale, IMAGE_ROTATION)).thenReturn(rotatedImageAsGrayscale);
-        when(imageFormatConverter.grayscaleImageToBitmap(rotatedImageAsGrayscale)).thenReturn(rotatedImageAsBitmap);
     }
 
     private void mockStateWaitingForReferenceImage() {
         presenter.index = INDEX;
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_REFERENCE_IMAGE;
-
-        when(imageFormatConverter.intensityPlaneToGrayscaleImage(imageAsIntensityPlane)).thenReturn(imageAsGrayscale);
-        when(imageTransformer.rotate(imageAsGrayscale, IMAGE_ROTATION)).thenReturn(rotatedImageAsGrayscale);
-        when(imageFormatConverter.grayscaleImageToBitmap(rotatedImageAsGrayscale)).thenReturn(rotatedImageAsBitmap);
     }
 
     private void mockStateWaitingForImageWithMotion() {
         presenter.index = INDEX;
         presenter.imageDetectionState = ImageDetectionState.WAITING_FOR_IMAGE_WITH_MOTION;
-        when(motionDetection.detect(rotatedImageAsBitmap)).thenReturn(true);
-
-        when(imageFormatConverter.intensityPlaneToGrayscaleImage(imageAsIntensityPlane)).thenReturn(imageAsGrayscale);
-        when(imageTransformer.rotate(imageAsGrayscale, IMAGE_ROTATION)).thenReturn(rotatedImageAsGrayscale);
-        when(imageFormatConverter.grayscaleImageToBitmap(rotatedImageAsGrayscale)).thenReturn(rotatedImageAsBitmap);
+        when(motionDetection.detect(img)).thenReturn(true);
     }
 
     private void assertCaptureImagePairReset() {

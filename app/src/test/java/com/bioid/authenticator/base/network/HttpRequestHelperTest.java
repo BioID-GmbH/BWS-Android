@@ -51,32 +51,32 @@ public class HttpRequestHelperTest {
     }
 
     @Test
-    public void testExecute_doesExecuteRequest() throws Exception {
+    public void testExecute_doesExecuteRequest() {
         httpRequestHelper.execute(request);
         verify(request).code();
     }
 
     @Test(expected = NoConnectionException.class)
-    public void testExecute_throwsExceptionIfNoConnectionCouldBeEstablished() throws Exception {
+    public void testExecute_throwsExceptionIfNoConnectionCouldBeEstablished() {
         doThrow(HttpRequest.HttpRequestException.class).when(request).code();
         httpRequestHelper.execute(request);
     }
 
     @Test
-    public void testAsTextIfOk_returnsResponseBodyOnStatus200() throws Exception {
+    public void testAsTextIfOk_returnsResponseBodyOnStatus200() {
         String result = httpRequestHelper.asTextIfOk(request);
         assertThat(result, is(JSON_AS_STRING));
     }
 
     @Test(expected = ServerErrorException.class)
-    public void testAsTextIfOk_throwsServerErrorExceptionOnStatus500() throws Exception {
+    public void testAsTextIfOk_throwsServerErrorExceptionOnStatus500() {
         when(request.code()).thenReturn(500);
 
         httpRequestHelper.asTextIfOk(request);
     }
 
     @Test
-    public void testAsTextIfOk_throwsExceptionOnNon200Status() throws Exception {
+    public void testAsTextIfOk_throwsExceptionOnNon200Status() {
         when(request.code()).thenReturn(404);
 
         try {
@@ -90,26 +90,26 @@ public class HttpRequestHelperTest {
     }
 
     @Test(expected = NoConnectionException.class)
-    public void testAsTextIfOk_throwsExceptionIfNoConnectionCouldBeEstablished() throws Exception {
+    public void testAsTextIfOk_throwsExceptionIfNoConnectionCouldBeEstablished() {
         doThrow(HttpRequest.HttpRequestException.class).when(request).code();
         httpRequestHelper.asTextIfOk(request);
     }
 
     @Test
-    public void testAsJsonIfOk_returnsJsonObjectOnStatus200() throws Exception {
+    public void testAsJsonIfOk_returnsJsonObjectOnStatus200() {
         JSONObject result = httpRequestHelper.asJsonIfOk(request);
         assertThat(result, is(jsonObject));
     }
 
     @Test(expected = ServerErrorException.class)
-    public void testAsJsonIfOk_throwsServerErrorExceptionOnStatus500() throws Exception {
+    public void testAsJsonIfOk_throwsServerErrorExceptionOnStatus500() {
         when(request.code()).thenReturn(500);
 
         httpRequestHelper.asJsonIfOk(request);
     }
 
     @Test
-    public void testAsJsonIfOk_throwsExceptionOnNon200Status() throws Exception {
+    public void testAsJsonIfOk_throwsExceptionOnNon200Status() {
         when(request.code()).thenReturn(404);
 
         try {
@@ -123,7 +123,7 @@ public class HttpRequestHelperTest {
     }
 
     @Test(expected = NoConnectionException.class)
-    public void testAsJsonIfOk_throwsExceptionIfNoConnectionCouldBeEstablished() throws Exception {
+    public void testAsJsonIfOk_throwsExceptionIfNoConnectionCouldBeEstablished() {
         doThrow(HttpRequest.HttpRequestException.class).when(request).code();
         httpRequestHelper.asJsonIfOk(request);
     }

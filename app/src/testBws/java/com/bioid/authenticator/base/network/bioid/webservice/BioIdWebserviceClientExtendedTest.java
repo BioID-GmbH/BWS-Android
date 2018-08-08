@@ -41,7 +41,7 @@ public class BioIdWebserviceClientExtendedTest {
 
         BioIdWebserviceClientExtendedForTest(HttpRequestHelper httpRequestHelper, BwsTokenFactory tokenFactory) {
             // using null dependencies makes sure the base class functionality won't be tested
-            super(httpRequestHelper, null, null, null, tokenFactory);
+            super(httpRequestHelper, null, null, tokenFactory);
         }
 
         @Override
@@ -62,12 +62,12 @@ public class BioIdWebserviceClientExtendedTest {
     private BioIdWebserviceClientExtendedForTest bioIdWebserviceClient;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         bioIdWebserviceClient = new BioIdWebserviceClientExtendedForTest(httpRequestHelper, tokenFactory);
     }
 
     @Test
-    public void requestVerificationToken_tokenWillBeReturned() throws Exception {
+    public void requestVerificationToken_tokenWillBeReturned() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenReturn(VERIFICATION_TOKEN_CONTENT);
         when(tokenFactory.newVerificationToken(VERIFICATION_TOKEN_CONTENT)).thenReturn(VERIFICATION_TOKEN);
 
@@ -79,31 +79,31 @@ public class BioIdWebserviceClientExtendedTest {
     }
 
     @Test(expected = TechnicalException.class)
-    public void requestVerificationToken_technicalExceptionWillPassThrough() throws Exception {
+    public void requestVerificationToken_technicalExceptionWillPassThrough() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenThrow(TechnicalException.class);
         bioIdWebserviceClient.requestVerificationToken(BCID);
     }
 
     @Test(expected = NoConnectionException.class)
-    public void requestVerificationToken_noConnectionExceptionWillPassThrough() throws Exception {
+    public void requestVerificationToken_noConnectionExceptionWillPassThrough() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenThrow(NoConnectionException.class);
         bioIdWebserviceClient.requestVerificationToken(BCID);
     }
 
     @Test(expected = ServerErrorException.class)
-    public void requestVerificationToken_serverErrorExceptionWillPassThrough() throws Exception {
+    public void requestVerificationToken_serverErrorExceptionWillPassThrough() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenThrow(ServerErrorException.class);
         bioIdWebserviceClient.requestVerificationToken(BCID);
     }
 
     @Test(expected = TechnicalException.class)
-    public void requestVerificationToken_non200StatusCodeLeadsToTechnicalException() throws Exception {
+    public void requestVerificationToken_non200StatusCodeLeadsToTechnicalException() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenThrow(Non200StatusException.class);
         bioIdWebserviceClient.requestVerificationToken(BCID);
     }
 
     @Test
-    public void requestEnrollmentToken_tokenWillBeReturned() throws Exception {
+    public void requestEnrollmentToken_tokenWillBeReturned() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenReturn(ENROLLMENT_TOKEN_CONTENT);
         when(tokenFactory.newEnrollmentToken(ENROLLMENT_TOKEN_CONTENT)).thenReturn(ENROLLMENT_TOKEN);
 
@@ -115,25 +115,25 @@ public class BioIdWebserviceClientExtendedTest {
     }
 
     @Test(expected = TechnicalException.class)
-    public void requestEnrollmentToken_technicalExceptionWillPassThrough() throws Exception {
+    public void requestEnrollmentToken_technicalExceptionWillPassThrough() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenThrow(TechnicalException.class);
         bioIdWebserviceClient.requestEnrollmentToken(BCID);
     }
 
     @Test(expected = NoConnectionException.class)
-    public void requestEnrollmentToken_noConnectionExceptionWillPassThrough() throws Exception {
+    public void requestEnrollmentToken_noConnectionExceptionWillPassThrough() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenThrow(NoConnectionException.class);
         bioIdWebserviceClient.requestEnrollmentToken(BCID);
     }
 
     @Test(expected = ServerErrorException.class)
-    public void requestEnrollmentToken_serverErrorExceptionWillPassThrough() throws Exception {
+    public void requestEnrollmentToken_serverErrorExceptionWillPassThrough() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenThrow(ServerErrorException.class);
         bioIdWebserviceClient.requestEnrollmentToken(BCID);
     }
 
     @Test(expected = TechnicalException.class)
-    public void requestEnrollmentToken_non200StatusCodeLeadsToTechnicalException() throws Exception {
+    public void requestEnrollmentToken_non200StatusCodeLeadsToTechnicalException() {
         when(httpRequestHelper.asTextIfOk(tokenRequest)).thenThrow(Non200StatusException.class);
         bioIdWebserviceClient.requestEnrollmentToken(BCID);
     }

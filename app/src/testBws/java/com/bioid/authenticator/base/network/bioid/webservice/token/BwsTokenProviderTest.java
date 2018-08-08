@@ -42,7 +42,7 @@ public class BwsTokenProviderTest {
     }
 
     @Test
-    public void requestVerificationToken() throws Exception {
+    public void requestVerificationToken() {
         when(bioIdWebserviceClient.requestVerificationToken(BCID)).thenReturn(VERIFICATION_TOKEN);
 
         VerificationToken token = bwsTokenProvider.requestVerificationToken(ctx);
@@ -51,7 +51,7 @@ public class BwsTokenProviderTest {
     }
 
     @Test
-    public void requestEnrollmentToken() throws Exception {
+    public void requestEnrollmentToken() {
         when(bioIdWebserviceClient.requestEnrollmentToken(BCID)).thenReturn(ENROLLMENT_TOKEN);
 
         EnrollmentToken token = bwsTokenProvider.requestEnrollmentToken(ctx);

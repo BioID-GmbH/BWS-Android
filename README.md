@@ -9,7 +9,7 @@ Therefore we want to provide some sample code that might be used in Android to i
 ## Setup
 
 To successfully run this sample app, you need to have access to an existing BWS installation.
-If you don't have this access you can [register for a trial instance](https://bwsportal.bioid.com/register).
+If you don't have this access you can [register for a trial instance][trial].
 
 After you have access to the BioID Web Service (BWS) you can continue to create and configure your client app.
 
@@ -37,7 +37,7 @@ Now you can add the following properties to your users `gradle.properties` file.
   * `BioIdAppSecret`
   * `BioIdBcid`
 
-*If you need more information about the `gradle.properties` file read [Chapter 12](https://docs.gradle.org/current/userguide/build_environment.html) of the official gradle docs.*
+*If you need more information about the `gradle.properties` file read [Chapter 12][gradleproperties] of the official gradle docs.*
 
 ## Integration
 
@@ -45,7 +45,7 @@ If you want to integrate this code into your Android app follow these steps:
 
   1. setup your `app/build.gradle`
     1. make sure that your `minSdkVersion` is `23` (Android 6.0) or higher
-    2. make sure you enabled [Data Binding](https://developer.android.com/topic/libraries/data-binding/index.html)
+    2. make sure you enabled [Data Binding][databinding]
     3. make sure you enabled [Support Vector Drawables](https://android-developers.googleblog.com/2016/02/android-support-library-232.html)
     4. add all `buildConfigField` entries from the `android/productFlavors/bws` section within `app/build.gradle` to your project
        (the actual values are provided by your users `gradle.properties` file, have a look at the **Setup** section)
@@ -69,4 +69,11 @@ If you want to integrate this code into your Android app follow these steps:
 
 In case you are wondering why the code is split into the **main** and **bws** source set, this is because of the closed source **connect** flavor.
 The **connect** flavor uses BioID Connect as identity management.
-You can try out this [facial recognition app](https://www.bioid.com/facial-recognition-app) - available via [Play Store](https://play.google.com/store/apps/details?id=com.bioid.authenticator).
+You can try out this [facial recognition app][bioid] - available via [Play Store][playstore].
+
+[bioid]: https://www.bioid.com/facial-recognition-app "BioID Facial Recognition App"
+[playstore]: https://play.google.com/store/apps/details?id=com.bioid.authenticator "BioID Android App"
+[trial]: https://bwsportal.bioid.com/register "Register for a trial instance"
+[gradleproperties]: https://docs.gradle.org/current/userguide/build_environment.html "Gradle properties"
+[databinding]: https://developer.android.com/topic/libraries/data-binding/ "Data Binding"
+[vectordrawables]: https://android-developers.googleblog.com/2016/02/android-support-library-232.html "Vector Drawables"

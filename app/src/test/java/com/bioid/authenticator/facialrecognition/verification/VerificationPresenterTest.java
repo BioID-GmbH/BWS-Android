@@ -150,12 +150,12 @@ public class VerificationPresenterTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         when(tokenProvider.requestVerificationToken(ctx)).thenReturn(VERIFICATION_TOKEN);
     }
 
     @Test
-    public void startBiometricOperation_initialisationInfoIsShownWhileFetchingTheToken() throws Exception {
+    public void startBiometricOperation_initialisationInfoIsShownWhileFetchingTheToken() {
         presenter.startBiometricOperation();
 
         InOrder messageOrder = inOrder(view);
@@ -164,7 +164,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void startBiometricOperation_tokenIsFetchedAndSet() throws Exception {
+    public void startBiometricOperation_tokenIsFetchedAndSet() {
         presenter.setBwsToken(null);
         presenter.setFailedOperations(1);
         presenter.startBiometricOperation();
@@ -174,7 +174,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void startBiometricOperation_detectFaceIsCalled() throws Exception {
+    public void startBiometricOperation_detectFaceIsCalled() {
         presenter.startBiometricOperation();
 
         assertThat(presenter.detectFaceCalled, is(true));
@@ -223,7 +223,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void startBiometricOperation_ifTokenRequestFailed_resetBiometricOperation() throws Exception {
+    public void startBiometricOperation_ifTokenRequestFailed_resetBiometricOperation() {
         doThrow(RuntimeException.class).when(tokenProvider).requestVerificationToken(ctx);
 
         presenter.startBiometricOperation();
@@ -232,7 +232,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void startBiometricOperation_ifTokenRequestFailed_warningIsShown() throws Exception {
+    public void startBiometricOperation_ifTokenRequestFailed_warningIsShown() {
         RuntimeException e = new RuntimeException("token request failed");
         doThrow(e).when(tokenProvider).requestVerificationToken(ctx);
 
@@ -242,34 +242,34 @@ public class VerificationPresenterTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void promptForProcessExplanationAccepted_shouldNotBeCalled() throws Exception {
+    public void promptForProcessExplanationAccepted_shouldNotBeCalled() {
         presenter.promptForProcessExplanationAccepted();
     }
 
     @Test(expected = IllegalStateException.class)
-    public void promptForProcessExplanationRejected_shouldNotBeCalled() throws Exception {
+    public void promptForProcessExplanationRejected_shouldNotBeCalled() {
         presenter.promptForProcessExplanationRejected();
     }
 
     @Test(expected = IllegalStateException.class)
-    public void promptToTurn90DegreesAccepted_throwsException() throws Exception {
+    public void promptToTurn90DegreesAccepted_throwsException() {
         presenter.promptToTurn90DegreesAccepted();
     }
 
     @Test(expected = IllegalStateException.class)
-    public void promptToTurn90DegreesRejected_throwsException() throws Exception {
+    public void promptToTurn90DegreesRejected_throwsException() {
         presenter.promptToTurn90DegreesRejected();
     }
 
     @Test
-    public void onImageWithMotionProcessed_movementIndicatorWillBeHidden() throws Exception {
+    public void onImageWithMotionProcessed_movementIndicatorWillBeHidden() {
         presenter.onImageWithMotionProcessed();
 
         verify(view).hideMovementIndicator();
     }
 
     @Test
-    public void onImageWithMotionProcessed_withChallenge_movementIndicatorWillBeHiddenOnLastImagePair() throws Exception {
+    public void onImageWithMotionProcessed_withChallenge_movementIndicatorWillBeHiddenOnLastImagePair() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.nextPairForChallenge = 3;
 
@@ -279,8 +279,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onImageWithMotionProcessed_withChallenge_movementIndicatorWillNotBeHiddenIfChallengeRequiresMoreImages()
-            throws Exception {
+    public void onImageWithMotionProcessed_withChallenge_movementIndicatorWillNotBeHiddenIfChallengeRequiresMoreImages() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.nextPairForChallenge = 1;
 
@@ -290,7 +289,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onImageWithMotionProcessed_withChallenge_nextImagePairOfChallengeWillBeCaptured() throws Exception {
+    public void onImageWithMotionProcessed_withChallenge_nextImagePairOfChallengeWillBeCaptured() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.nextPairForChallenge = 1;
 
@@ -302,7 +301,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onImageWithMotionProcessed_withChallenge_nextPairForChallengeWillSetToNextPair() throws Exception {
+    public void onImageWithMotionProcessed_withChallenge_nextPairForChallengeWillSetToNextPair() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.nextPairForChallenge = 1;
 
@@ -312,7 +311,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_counterIsIncremented() throws Exception {
+    public void onUploadSuccessful_counterIsIncremented() {
         presenter.setSuccessfulUploads(10);
 
         presenter.onUploadSuccessful();
@@ -321,7 +320,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_ifFirstImageOfPairWasUploaded_waitForSecondImageUploadToComplete() throws Exception {
+    public void onUploadSuccessful_ifFirstImageOfPairWasUploaded_waitForSecondImageUploadToComplete() {
         presenter.setSuccessfulUploads(2);  // one pair already uploaded + reference image of second pair
 
         presenter.onUploadSuccessful();
@@ -330,7 +329,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_verifyWillBeCalled() throws Exception {
+    public void onUploadSuccessful_verifyWillBeCalled() {
         presenter.setSuccessfulUploads(1);
 
         presenter.onUploadSuccessful();
@@ -339,7 +338,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_withChallengeResponse_ifLastImageOfChallengeWasUploaded_verifyWillBeCalled() throws Exception {
+    public void onUploadSuccessful_withChallengeResponse_ifLastImageOfChallengeWasUploaded_verifyWillBeCalled() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.setSuccessfulUploads(3);  // mocked challenge: left, right, up
 
@@ -349,8 +348,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_withChallengeResponse_ifNotLastImageOfChallengeWasUploaded_verifyNotWillBeCalled()
-            throws Exception {
+    public void onUploadSuccessful_withChallengeResponse_ifNotLastImageOfChallengeWasUploaded_verifyNotWillBeCalled() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.setSuccessfulUploads(1);  // mocked challenge: left, right, up
 
@@ -360,7 +358,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void verify_verifyingInfoIsShown() throws Exception {
+    public void verify_verifyingInfoIsShown() {
         presenter.executeVerify = true;
         presenter.verify();
 
@@ -368,7 +366,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void verify_resetBiometricOperation() throws Exception {
+    public void verify_resetBiometricOperation() {
         presenter.executeVerify = true;
         presenter.verify();
 
@@ -376,7 +374,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void verify_ifVerificationWasSuccessful_successWillBeShownBeforeNavigatingBack() throws Exception {
+    public void verify_ifVerificationWasSuccessful_successWillBeShownBeforeNavigatingBack() {
         presenter.executeVerify = true;
         presenter.verify();
 
@@ -385,7 +383,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void verify_ifVerificationWasNotSuccessful_warningWillBeShown() throws Exception {
+    public void verify_ifVerificationWasNotSuccessful_warningWillBeShown() {
         RuntimeException e = new RuntimeException("verification not successful");
         doThrow(e).when(bioIdWebserviceClient).verify(VERIFICATION_TOKEN);
         presenter.executeVerify = true;
@@ -396,7 +394,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void verify_ifVerificationWasNotSuccessful_operationWillBeRestarted() throws Exception {
+    public void verify_ifVerificationWasNotSuccessful_operationWillBeRestarted() {
         RuntimeException e = new RuntimeException("verification not successful");
         doThrow(e).when(bioIdWebserviceClient).verify(VERIFICATION_TOKEN);
         presenter.setFailedOperations(0);
@@ -411,7 +409,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void verify_ifVerificationWasNotSuccessful_withChallenge_operationWillBeRestartedWithNextChallenge() throws Exception {
+    public void verify_ifVerificationWasNotSuccessful_withChallenge_operationWillBeRestartedWithNextChallenge() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         RuntimeException e = new RuntimeException("verification not successful");
         doThrow(e).when(bioIdWebserviceClient).verify(VERIFICATION_TOKEN_WITH_CHALLENGE);
@@ -428,7 +426,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void verify_ifVerificationWasNotSuccessful_failedOperationCounterIsIncremented() throws Exception {
+    public void verify_ifVerificationWasNotSuccessful_failedOperationCounterIsIncremented() {
         RuntimeException e = new RuntimeException("verification not successful");
         doThrow(e).when(bioIdWebserviceClient).verify(VERIFICATION_TOKEN);
         presenter.setFailedOperations(0);
@@ -442,7 +440,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void verify_ifVerificationWasNotSuccessful_maxTriesAreExceeded_navigateBackWithoutSuccess() throws Exception {
+    public void verify_ifVerificationWasNotSuccessful_maxTriesAreExceeded_navigateBackWithoutSuccess() {
         RuntimeException e = new RuntimeException("verification not successful");
         doThrow(e).when(bioIdWebserviceClient).verify(VERIFICATION_TOKEN);
         presenter.setFailedOperations(1);
@@ -455,7 +453,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onUploadFailed_noFaceFoundErrorWillBeSuppressedWithinChallengeResponse() throws Exception {
+    public void onUploadFailed_noFaceFoundErrorWillBeSuppressedWithinChallengeResponse() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.setSuccessfulUploads(10);
         presenter.setFailedUploads(10);
@@ -467,7 +465,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onUploadFailed_liveDetectionErrorWillBeSuppressedWithinChallengeResponse() throws Exception {
+    public void onUploadFailed_liveDetectionErrorWillBeSuppressedWithinChallengeResponse() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.setSuccessfulUploads(10);
         presenter.setFailedUploads(10);
@@ -479,7 +477,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void onUploadFailed_otherErrorsWillNotBeSuppressedWithinChallengeResponse() throws Exception {
+    public void onUploadFailed_otherErrorsWillNotBeSuppressedWithinChallengeResponse() {
         presenter.setBwsToken(VERIFICATION_TOKEN_WITH_CHALLENGE);
         presenter.setSuccessfulUploads(10);
         presenter.setFailedUploads(10);
@@ -491,7 +489,7 @@ public class VerificationPresenterTest {
     }
 
     @Test
-    public void resetBiometricOperation_doesResetValues() throws Exception {
+    public void resetBiometricOperation_doesResetValues() {
         presenter.nextPairForChallenge = 42;
         presenter.executeReset = true;
 

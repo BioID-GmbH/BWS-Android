@@ -1,13 +1,12 @@
 package com.bioid.authenticator.base.network.bioid.webservice;
 
-import android.graphics.Bitmap;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 import android.util.ArrayMap;
 
 import com.bioid.authenticator.BuildConfig;
-import com.bioid.authenticator.base.image.ImageFormatConverter;
+import com.bioid.authenticator.base.image.Yuv420Image;
 import com.bioid.authenticator.base.logging.LoggingHelper;
 import com.bioid.authenticator.base.logging.LoggingHelperFactory;
 import com.bioid.authenticator.base.network.HttpRequest;
@@ -63,7 +62,6 @@ public class BioIdWebserviceClient {
     final HttpRequestHelper httpRequestHelper;
     private final LoggingHelper log;
     private final Encoder encoder;
-    private final ImageFormatConverter imageFormatConverter;
 
     /**
      * Creates a new instance of the BioIdWebserviceClient.
@@ -72,16 +70,13 @@ public class BioIdWebserviceClient {
         this.httpRequestHelper = new HttpRequestHelper();
         this.log = LoggingHelperFactory.create(BioIdWebserviceClient.class);
         this.encoder = new Encoder();
-        this.imageFormatConverter = new ImageFormatConverter();
     }
 
     @VisibleForTesting
-    BioIdWebserviceClient(HttpRequestHelper httpRequestHelper, LoggingHelper log, Encoder encoder,
-                          ImageFormatConverter imageFormatConverter) {
+    BioIdWebserviceClient(HttpRequestHelper httpRequestHelper, LoggingHelper log, Encoder encoder) {
         this.httpRequestHelper = httpRequestHelper;
         this.log = log;
         this.encoder = encoder;
-        this.imageFormatConverter = imageFormatConverter;
     }
 
     /**
@@ -194,7 +189,7 @@ public class BioIdWebserviceClient {
     /**
      * Uploads an image for enrollment or verification.
      *
-     * @param bitmap    image which should be uploaded
+     * @param img       which should be uploaded
      * @param bwsToken  BWS token for enrollment or verification
      * @param direction specifies the movement direction of the head
      * @param index     index of the uploaded image within a series of uploads
@@ -205,10 +200,10 @@ public class BioIdWebserviceClient {
      * @throws ServerErrorException        if the server failed to process the request
      * @throws TechnicalException          if any other technical error occurred
      */
-    public void uploadImage(@NonNull Bitmap bitmap, @NonNull BwsToken bwsToken, @NonNull MovementDirection direction,
+    public void uploadImage(@NonNull Yuv420Image img, @NonNull BwsToken bwsToken, @NonNull MovementDirection direction,
                             @IntRange(from = 1) int index) {
         try {
-            HttpRequest request = createUploadImageRequest(prepareImage(bitmap), bwsToken, direction, index);
+            HttpRequest request = createUploadImageRequest(prepareImage(img), bwsToken, direction, index);
 
             JSONObject responseBody = httpRequestHelper.asJsonIfOk(request);
             handleImageUploadResult(responseBody);
@@ -222,8 +217,8 @@ public class BioIdWebserviceClient {
     }
 
     @NonNull
-    private byte[] prepareImage(@NonNull Bitmap bitmap) {
-        byte[] imgAsPNG = imageFormatConverter.bitmapToPng(bitmap);
+    private byte[] prepareImage(@NonNull Yuv420Image img) {
+        byte[] imgAsPNG = img.asPNG();
         return asDataUrl(MIME_TYPE_PNG, imgAsPNG);
     }
 

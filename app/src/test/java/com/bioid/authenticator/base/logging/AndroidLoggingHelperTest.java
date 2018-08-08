@@ -20,19 +20,19 @@ public class AndroidLoggingHelperTest {
     }
 
     @Test
-    public void testConstructor_UsingNameOfClassAsTag() throws Exception {
+    public void testConstructor_UsingNameOfClassAsTag() {
         AndroidLoggingHelper loggingHelper = new AndroidLoggingHelper(ShortClassName.class);
         assertThat(loggingHelper.tag, is("ShortClassName"));
     }
 
     @Test
-    public void testConstructor_UsingNameOfClassAsTagWithAMaxOf23Chars() throws Exception {
+    public void testConstructor_UsingNameOfClassAsTagWithAMaxOf23Chars() {
         AndroidLoggingHelper loggingHelper = new AndroidLoggingHelper(ClassNameIs23Characters.class);
         assertThat(loggingHelper.tag, is("ClassNameIs23Characters"));
     }
 
     @Test
-    public void testConstructor_UsingFirst23CharsOfClassNameAsTag() throws Exception {
+    public void testConstructor_UsingFirst23CharsOfClassNameAsTag() {
         AndroidLoggingHelper loggingHelper = new AndroidLoggingHelper(ClassNameLargerThan23Characters.class);
         assertThat(loggingHelper.tag, is("ClassNameLargerThan23Ch"));
     }

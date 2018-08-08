@@ -48,7 +48,7 @@ public class VerificationPresenter extends FacialRecognitionBasePresenter<Verifi
                           BioIdWebserviceClient bioIdWebserviceClient) {
 
         // using null dependencies makes sure the base class functionality won't be tested (MotionDetection is used in reset)
-        super(ctx, log, view, backgroundHandler, null, null, null, motionDetection, null);
+        super(ctx, log, view, backgroundHandler, null, motionDetection, null);
 
         this.tokenProvider = tokenProvider;
         this.bioIdWebserviceClient = bioIdWebserviceClient;

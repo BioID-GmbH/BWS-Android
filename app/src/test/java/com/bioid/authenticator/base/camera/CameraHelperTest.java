@@ -109,7 +109,7 @@ public class CameraHelperTest {
     }
 
     @Test(expected = CameraException.class)
-    public void testOpenFrontFacingCamera_noFrontFacingCameraOnDeviceThrowsException_characteristicNotAvailable() throws Exception {
+    public void testOpenFrontFacingCamera_noFrontFacingCameraOnDeviceThrowsException_characteristicNotAvailable() {
         doThrow(CameraException.class).when(characteristicsHelper).getLensFacing(CAMERA_ID_2);
         cameraHelper.openFrontFacingCamera(stateCallback);
     }
@@ -133,7 +133,7 @@ public class CameraHelperTest {
     }
 
     @Test
-    public void testSetupCaptureRequestForPreview_captureRequestBuilderIsConfiguredCorrectly() throws Exception {
+    public void testSetupCaptureRequestForPreview_captureRequestBuilderIsConfiguredCorrectly() {
         cameraHelper.setupCaptureRequestForPreview(session, camera, surfaces);
         verify(captureRequestBuilder).addTarget(surface1);
         verify(captureRequestBuilder).addTarget(surface2);
@@ -153,7 +153,7 @@ public class CameraHelperTest {
     }
 
     @Test(expected = CameraException.class)
-    public void testSetupCaptureRequestForPreview_cameraAccessExceptionOnSetRepeatingRequestThrowsException() throws Exception {
+    public void testSetupCaptureRequestForPreview_cameraAccessExceptionOnSetRepeatingRequestThrowsException() {
         // do always throw CameraAccessException
         session = mock(CameraCaptureSession.class, invocation -> {
             throw new CameraAccessException(CameraAccessException.CAMERA_ERROR);
@@ -163,66 +163,66 @@ public class CameraHelperTest {
     }
 
     @Test
-    public void testConfigureTextureView_AspectRatioWillBeSetToPreviewSizeInLandscapeMode() throws Exception {
+    public void testConfigureTextureView_AspectRatioWillBeSetToPreviewSizeInLandscapeMode() {
         cameraHelper.configureTextureView(textureView, Configuration.ORIENTATION_LANDSCAPE, RELATIVE_DISPLAY_ROTATION,
                 PREVIEWSIZE_640x480);
         verify(textureView).setAspectRatio(PREVIEWSIZE_640x480.getWidth(), PREVIEWSIZE_640x480.getHeight(), RELATIVE_DISPLAY_ROTATION);
     }
 
     @Test
-    public void testConfigureTextureView_AspectRatioWillBeSetToReversePreviewSizeInPortraitMode() throws Exception {
+    public void testConfigureTextureView_AspectRatioWillBeSetToReversePreviewSizeInPortraitMode() {
         cameraHelper.configureTextureView(textureView, Configuration.ORIENTATION_PORTRAIT, RELATIVE_DISPLAY_ROTATION,
                 PREVIEWSIZE_640x480);
         verify(textureView).setAspectRatio(PREVIEWSIZE_640x480.getHeight(), PREVIEWSIZE_640x480.getWidth(), RELATIVE_DISPLAY_ROTATION);
     }
 
     @Test(expected = CameraException.class)
-    public void testConfigureTextureView_SurfaceTextureBeingNullThrowsException() throws Exception {
+    public void testConfigureTextureView_SurfaceTextureBeingNullThrowsException() {
         when(textureView.getSurfaceTexture()).thenReturn(null);
         cameraHelper.configureTextureView(textureView, Configuration.ORIENTATION_PORTRAIT, RELATIVE_DISPLAY_ROTATION,
                 PREVIEWSIZE_640x480);
     }
 
     @Test
-    public void testConfigureTextureView_BufferSizeWillBeSetToPreviewSize() throws Exception {
+    public void testConfigureTextureView_BufferSizeWillBeSetToPreviewSize() {
         cameraHelper.configureTextureView(textureView, Configuration.ORIENTATION_PORTRAIT, RELATIVE_DISPLAY_ROTATION,
                 PREVIEWSIZE_640x480);
         verify(surfaceTexture).setDefaultBufferSize(PREVIEWSIZE_640x480.getWidth(), PREVIEWSIZE_640x480.getHeight());
     }
 
     @Test
-    public void testSelectPreviewSize_choosing640x480ifAvailable() throws Exception {
+    public void testSelectPreviewSize_choosing640x480ifAvailable() {
         Size actual = cameraHelper.selectPreviewSize(camera);
         assertThat(actual, is(theInstance(PREVIEWSIZE_640x480)));
     }
 
     @Test
-    public void testSelectPreviewSize_fallbackToFirstPreviewSizeIf640x480notAvailable() throws Exception {
+    public void testSelectPreviewSize_fallbackToFirstPreviewSizeIf640x480notAvailable() {
         when(characteristicsHelper.getPreviewOutputSizes(CAMERA_ID_1)).thenReturn(new Size[]{PREVIEWSIZE_1, PREVIEWSIZE_2});
         Size actual = cameraHelper.selectPreviewSize(camera);
         assertThat(actual, is(theInstance(PREVIEWSIZE_1)));
     }
 
     @Test(expected = CameraException.class)
-    public void testSelectPreviewSize_noAvailablePreviewSizeThrowsException_arrayIsNull() throws Exception {
+    public void testSelectPreviewSize_noAvailablePreviewSizeThrowsException_arrayIsNull() {
         when(characteristicsHelper.getPreviewOutputSizes(CAMERA_ID_1)).thenReturn(null);
         cameraHelper.selectPreviewSize(camera);
     }
 
     @Test(expected = CameraException.class)
-    public void testSelectPreviewSize_noAvailablePreviewSizeThrowsException_arrayIsEmpty() throws Exception {
+    public void testSelectPreviewSize_noAvailablePreviewSizeThrowsException_arrayIsEmpty() {
         when(characteristicsHelper.getPreviewOutputSizes(CAMERA_ID_1)).thenReturn(new Size[]{});
         cameraHelper.selectPreviewSize(camera);
     }
 
     @Test
-    public void testGetImageRotation_sensorAndDeviceRotationAreInterpretedCorrectly() throws Exception {
+    public void testGetImageRotation_sensorAndDeviceRotationAreInterpretedCorrectly() {
         int result = cameraHelper.getImageRotation(camera, RELATIVE_DISPLAY_ROTATION);
         assertThat(result, is(IMAGE_ROTATION));
     }
 
     @Test(expected = CameraException.class)
-    public void testGetImageRotation_noSensorRotationThrowsException() throws Exception {
+    public void testGetImageRotation_noSensorRotationThrowsException() {
         doThrow(CameraException.class).when(characteristicsHelper).getSensorOrientation(CAMERA_ID_1);
         cameraHelper.getImageRotation(camera, RELATIVE_DISPLAY_ROTATION);
     }

@@ -12,7 +12,6 @@ public class GrayscaleImage {
     public final int width;
     public final int height;
 
-    // use ImageFormatConverter instead
     GrayscaleImage(@NonNull byte[] data, int width, int height) {
         this.data = data;
         this.width = width;

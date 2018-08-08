@@ -116,12 +116,12 @@ public class EnrollmentPresenterTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         when(tokenProvider.requestEnrollmentToken(ctx)).thenReturn(ENROLLMENT_TOKEN);
     }
 
     @Test
-    public void startBiometricOperation_initialisationInfoIsShownWhileFetchingTheToken() throws Exception {
+    public void startBiometricOperation_initialisationInfoIsShownWhileFetchingTheToken() {
         presenter.startBiometricOperation();
 
         InOrder messageOrder = inOrder(view);
@@ -130,7 +130,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void startBiometricOperation_tokenIsFetchedAndSet() throws Exception {
+    public void startBiometricOperation_tokenIsFetchedAndSet() {
         presenter.setBwsToken(null);
         presenter.setFailedOperations(1);
         presenter.startBiometricOperation();
@@ -150,14 +150,14 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void startBiometricOperation_promptForEnrollmentProcessExplanation() throws Exception {
+    public void startBiometricOperation_promptForEnrollmentProcessExplanation() {
         presenter.startBiometricOperation();
 
         verify(view).promptForEnrollmentProcessExplanation();
     }
 
     @Test
-    public void startBiometricOperation_ifTokenRequestFailed_resetBiometricOperation() throws Exception {
+    public void startBiometricOperation_ifTokenRequestFailed_resetBiometricOperation() {
         doThrow(RuntimeException.class).when(tokenProvider).requestEnrollmentToken(ctx);
 
         presenter.startBiometricOperation();
@@ -166,7 +166,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void startBiometricOperation_ifTokenRequestFailed_warningIsShown() throws Exception {
+    public void startBiometricOperation_ifTokenRequestFailed_warningIsShown() {
         RuntimeException e = new RuntimeException("token request failed");
         doThrow(e).when(tokenProvider).requestEnrollmentToken(ctx);
 
@@ -176,7 +176,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void promptForProcessExplanationAccepted_captureImagePairSessionTriggered() throws Exception {
+    public void promptForProcessExplanationAccepted_captureImagePairSessionTriggered() {
         presenter.promptForProcessExplanationAccepted();
 
         assertThat(presenter.captureImagePairCalledWithFirstParam, is(0));
@@ -185,14 +185,14 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void promptForProcessExplanationRejected_doesNavigateBackWithoutSuccess() throws Exception {
+    public void promptForProcessExplanationRejected_doesNavigateBackWithoutSuccess() {
         presenter.promptForProcessExplanationRejected();
 
         verify(view).navigateBack(false);
     }
 
     @Test
-    public void promptToTurn90DegreesAccepted_captureImagePairSessionTriggered() throws Exception {
+    public void promptToTurn90DegreesAccepted_captureImagePairSessionTriggered() {
         presenter.setSuccessfulUploads(42);
         presenter.promptToTurn90DegreesAccepted();
 
@@ -202,21 +202,21 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void promptToTurn90DegreesRejected_doesNavigateBackWithoutSuccess() throws Exception {
+    public void promptToTurn90DegreesRejected_doesNavigateBackWithoutSuccess() {
         presenter.promptToTurn90DegreesRejected();
 
         verify(view).navigateBack(false);
     }
 
     @Test
-    public void onImageWithMotionProcessed_movementIndicatorWillBeHidden() throws Exception {
+    public void onImageWithMotionProcessed_movementIndicatorWillBeHidden() {
         presenter.onImageWithMotionProcessed();
 
         verify(view).hideMovementIndicator();
     }
 
     @Test
-    public void onUploadSuccessful_counterIsIncremented() throws Exception {
+    public void onUploadSuccessful_counterIsIncremented() {
         presenter.setSuccessfulUploads(10);
 
         presenter.onUploadSuccessful();
@@ -225,7 +225,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_enrollingInfoIsShown() throws Exception {
+    public void onUploadSuccessful_enrollingInfoIsShown() {
         presenter.setSuccessfulUploads(7);
 
         presenter.onUploadSuccessful();
@@ -234,7 +234,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_resetBiometricOperation() throws Exception {
+    public void onUploadSuccessful_resetBiometricOperation() {
         presenter.setSuccessfulUploads(7);
 
         presenter.onUploadSuccessful();
@@ -243,7 +243,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_ifEnrollmentWasSuccessful_successWillBeShownBeforeNavigatingBack() throws Exception {
+    public void onUploadSuccessful_ifEnrollmentWasSuccessful_successWillBeShownBeforeNavigatingBack() {
         presenter.setSuccessfulUploads(7);
 
         presenter.onUploadSuccessful();
@@ -253,7 +253,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_ifEnrollmentWasNotSuccessful_warningWillBeShown() throws Exception {
+    public void onUploadSuccessful_ifEnrollmentWasNotSuccessful_warningWillBeShown() {
         presenter.setSuccessfulUploads(7);
         RuntimeException e = new RuntimeException("enrollment not successful");
         doThrow(e).when(bioIdWebserviceClient).enroll(ENROLLMENT_TOKEN);
@@ -264,7 +264,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_ifEnrollmentWasNotSuccessful_operationWillBeRestarted() throws Exception {
+    public void onUploadSuccessful_ifEnrollmentWasNotSuccessful_operationWillBeRestarted() {
         presenter.setSuccessfulUploads(7);
         RuntimeException e = new RuntimeException("enrollment not successful");
         doThrow(e).when(bioIdWebserviceClient).enroll(ENROLLMENT_TOKEN);
@@ -279,7 +279,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_ifEnrollmentWasNotSuccessful_failedOperationCounterIsIncremented() throws Exception {
+    public void onUploadSuccessful_ifEnrollmentWasNotSuccessful_failedOperationCounterIsIncremented() {
         presenter.setSuccessfulUploads(7);
         RuntimeException e = new RuntimeException("enrollment not successful");
         doThrow(e).when(bioIdWebserviceClient).enroll(ENROLLMENT_TOKEN);
@@ -292,7 +292,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_ifEnrollmentWasNotSuccessful_maxTriesAreExceeded_navigateBackWithoutSuccess() throws Exception {
+    public void onUploadSuccessful_ifEnrollmentWasNotSuccessful_maxTriesAreExceeded_navigateBackWithoutSuccess() {
         presenter.setSuccessfulUploads(7);
         RuntimeException e = new RuntimeException("enrollment not successful");
         doThrow(e).when(bioIdWebserviceClient).enroll(ENROLLMENT_TOKEN);
@@ -305,7 +305,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_ifFirstImageOfPairWasUploaded_waitForSecondImageUploadToComplete() throws Exception {
+    public void onUploadSuccessful_ifFirstImageOfPairWasUploaded_waitForSecondImageUploadToComplete() {
         presenter.setSuccessfulUploads(2);  // one pair already uploaded + reference image of second pair
 
         presenter.onUploadSuccessful();
@@ -315,7 +315,7 @@ public class EnrollmentPresenterTest {
     }
 
     @Test
-    public void onUploadSuccessful_ifLessThanFourImagePairsAreUploaded_promptToTurn90Degrees() throws Exception {
+    public void onUploadSuccessful_ifLessThanFourImagePairsAreUploaded_promptToTurn90Degrees() {
         presenter.setSuccessfulUploads(5);  // three pairs already uploaded -> one missing
 
         presenter.onUploadSuccessful();
