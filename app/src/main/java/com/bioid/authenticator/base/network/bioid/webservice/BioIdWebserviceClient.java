@@ -156,7 +156,7 @@ public class BioIdWebserviceClient {
     // used in bws flavor
     @SuppressWarnings("WeakerAccess")
     HttpRequest withDefaultTimeout(HttpRequest request) {
-        return request.connectTimeout(4000).readTimeout(6000);
+        return request.connectTimeout(40000).readTimeout(60000);
     }
 
     private void handleBiometricOperationResult(JSONObject json) {
