@@ -6,6 +6,8 @@ The **BioID Web Service** (BWS) is a cloud-based online service providing a powe
 But often developers have some trouble writing a user interface for collecting the data required to perform the biometric tasks, notably face images.
 Therefore we want to provide some sample code that might be used in Android to interact with the BWS.
 
+[BioID’s liveness detection][liveness] is a software-based security feature for facial biometrics. Also called presentation attack detection (PAD), it distinguishes live persons from fakes such as photo/video replays or masks.
+
 ## Setup
 
 To successfully run this sample app, you need to have access to an existing BWS installation.
@@ -71,9 +73,13 @@ In case you are wondering why the code is split into the **main** and **bws** so
 The **connect** flavor uses BioID Connect as identity management.
 You can try out this [facial recognition app][bioid] - available via [Play Store][playstore].
 
+BioID’s liveness detection is a software-based security feature for facial biometrics. Also called presentation attack detection (PAD), it distinguishes live persons from fakes such as photo/video replays or masks.
+
+
 [bioid]: https://www.bioid.com/facial-recognition-app "BioID Facial Recognition App"
 [playstore]: https://play.google.com/store/apps/details?id=com.bioid.authenticator "BioID Android App"
 [trial]: https://bwsportal.bioid.com/register "Register for a trial instance"
 [gradleproperties]: https://docs.gradle.org/current/userguide/build_environment.html "Gradle properties"
 [databinding]: https://developer.android.com/topic/libraries/data-binding/ "Data Binding"
 [vectordrawables]: https://android-developers.googleblog.com/2016/02/android-support-library-232.html "Vector Drawables"
+[liveness]: https://www.bioid.com/liveness-detection/ "liveness detection"
