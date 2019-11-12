@@ -73,8 +73,6 @@ In case you are wondering why the code is split into the **main** and **bws** so
 The **connect** flavor uses BioID Connect as identity management.
 You can try out this [facial recognition app][bioid] - available via [Play Store][playstore].
 
-BioID’s liveness detection is a software-based security feature for facial biometrics. Also called presentation attack detection (PAD), it distinguishes live persons from fakes such as photo/video replays or masks.
-
 
 [bioid]: https://www.bioid.com/facial-recognition-app "BioID Facial Recognition App"
 [playstore]: https://play.google.com/store/apps/details?id=com.bioid.authenticator "BioID Android App"
