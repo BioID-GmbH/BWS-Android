@@ -11,7 +11,7 @@ Therefore we want to provide some sample code that might be used in Android to i
 ## Setup
 
 To successfully run this sample app, you need to have access to an existing BWS installation.
-If you don't have this access you can [register for a trial instance][trial].
+If you don't have this access you can [register for a trial instance][trial]. Please also take a look at the [Developer Documentation][developer].
 
 After you have access to the BioID Web Service (BWS) you can continue to create and configure your client app.
 
@@ -77,6 +77,7 @@ You can try out this [facial recognition app][bioid] - available via [Play Store
 [bioid]: https://www.bioid.com/facial-recognition-app "BioID Facial Recognition App"
 [playstore]: https://play.google.com/store/apps/details?id=com.bioid.authenticator "BioID Android App"
 [trial]: https://bwsportal.bioid.com/register "Register for a trial instance"
+[developer]: https://developer.bioid.com "Developer Documentation"
 [gradleproperties]: https://docs.gradle.org/current/userguide/build_environment.html "Gradle properties"
 [databinding]: https://developer.android.com/topic/libraries/data-binding/ "Data Binding"
 [vectordrawables]: https://android-developers.googleblog.com/2016/02/android-support-library-232.html "Vector Drawables"
