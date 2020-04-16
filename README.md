@@ -74,7 +74,7 @@ The **connect** flavor uses BioID Connect as identity management.
 You can try out this [facial recognition app][bioid] - available via [Play Store][playstore].
 
 
-[bioid]: https://www.bioid.com/facial-recognition-app "BioID Facial Recognition App"
+[bioid]: https://www.bioid.com/facial-recognition-app/ "BioID Facial Recognition App"
 [playstore]: https://play.google.com/store/apps/details?id=com.bioid.authenticator "BioID Android App"
 [trial]: https://bwsportal.bioid.com/register "Register for a trial instance"
 [developer]: https://developer.bioid.com "Developer Documentation"
