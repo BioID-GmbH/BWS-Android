@@ -8,6 +8,8 @@ Therefore we want to provide some sample code that might be used in Android to i
 
 [BioID’s liveness detection][liveness] is a software-based security feature for facial biometrics. Also called presentation attack detection (PAD), it distinguishes live persons from fakes such as photo/video replays or masks.
 
+[<img src="https://img.youtube.com/vi/e5lP2Fja3Ow/maxresdefault.jpg" width="50%">](https://youtu.be/e5lP2Fja3Ow)
+
 ## Setup
 
 To successfully run this sample app, you need to have access to an existing BWS installation.
