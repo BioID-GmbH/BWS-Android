@@ -27,7 +27,7 @@ Please also take a look at the [Developer Documentation][developer].
 
 
 
-The 'Client configuration' contains all information for accessing the BWS, as well as other information needed for the user BCIDs.
+Click on your BWS client on symbol „Update Classic client“ (the ‘pencil’ icon on the right). A dialog opens that contains all information for accessing the BWS, as well as other information needed for the user BCIDs.
 
 For the creation of BCIDs for users in your app the following information is needed:
 
